@@ -1,6 +1,5 @@
-julia 0.5
+julia 0.4.0
 Requests
 HttpCommon
-Compat
 JSON
-
+Swagger
