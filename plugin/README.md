@@ -10,47 +10,14 @@ The goal of Swagger™ is to define a standard, language-agnostic interface to R
 Check out [OpenAPI-Spec](https://github.com/OAI/OpenAPI-Specification) for additional information about the Swagger project, including additional libraries with support for other languages and more. 
 
 ## How do I use this?
-The folder structure of this project is something along these lines:
-
-```
-.
-|- README.md    // this file
-|- pom.xml      // build script
-|-- src
-|--- main
-|---- java
-|----- com.juliacomputing.swagger.codegen.JuliaGenerator.java // generator file
-|---- resources
-|----- julia // template files
-|----- META-INF
-|------ services
-|------- io.swagger.codegen.CodegenConfig
-```
-
-Install or build `swagger-codegen` (https://github.com/swagger-api/swagger-codegen).
-
-```
-git clone https://github.com/swagger-api/swagger-codegen.git
-cd swagger-codegen
-mvn clean package
-```
-
-Provision the correct version of `swagger-codegen` and `swagger-models` libraries and update `pom.xml` if required.
-You should have the libraries placed somewhere like this:
-
-```
-lib/io/swagger/swagger-codegen/2.2.2-SNAPSHOT/swagger-codegen-2.2.2-SNAPSHOT.jar
-lib/io/swagger/swagger-models/1.5.9/swagger-models-1.5.9.jar
-```
-
 To build the project, run this:
 
 ```
-mvn package
+plugin/build.sh
 ```
 
-A single jar file will be produced in `target`.  You can now use that with codegen:
+A single jar file (julia-swagger-codegen-0.0.1.jar) will be produced in `plugin/target`.  You can now use that with codegen:
 
 ```
-java -cp /path/to/swagger-codegen-cli.jar:/path/to/your.jar io.swagger.codegen.Codegen -l julia -i /path/to/swagger.yaml -o ./test
+java -cp /path/to/swagger-codegen-cli.jar:/path/to/julia-swagger-codegen-0.0.1.jar io.swagger.codegen.Codegen -l julia -i /path/to/swagger.yaml -o ./test
 ```

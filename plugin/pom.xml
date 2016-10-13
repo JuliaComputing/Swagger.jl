@@ -5,7 +5,8 @@
   <artifactId>julia-swagger-codegen</artifactId>
   <packaging>jar</packaging>
   <name>julia-swagger-codegen</name>
-  <version>1.0.0</version>
+  <!-- Update this to reflect Julia Swagger plugin version -->
+  <version>0.0.1</version>
   <prerequisites>
     <maven>2.2.0</maven>
   </prerequisites>
