@@ -1,0 +1,4 @@
+{
+    "packageName": "MyPetStore",
+    "modelOrder": "ApiResponse,Category,Order,Tag,Pet,User"
+}

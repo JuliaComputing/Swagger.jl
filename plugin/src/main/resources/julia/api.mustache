@@ -15,50 +15,28 @@ Returns: {{#returnType}}{{returnType}}{{/returnType}}{{^returnType}}Void{{/retur
 function {{operationId}}(_api::{{classname}}{{#allParams}}, {{paramName}}::{{^required}}Nullable{ {{/required}}{{dataType}}{{^required}} }=nothing{{/required}}{{/allParams}})
 {{#allParams}}
 {{#hasValidation}}
-{{#required}}
 {{#maxLength}}
-    (length({{paramName}}) > {{maxLength}}) && error("Invalid value for parameter {{paramName}} when calling {{operationId}}, length must be less than or equal to {{maxLength}}")
+    Swagger.validate_param("{{paramName}}", "{{operationId}}", :maxLength, {{paramName}}, {{maxLength}})
 {{/maxLength}}
 {{#minLength}}
-    (length({{paramName}}) < {{minLength}}) && error("Invalid value for parameter {{paramName}} when calling {{operationId}}, length must be greater than or equal to {{minLength}}")
+    Swagger.validate_param("{{paramName}}", "{{operationId}}", :minLength, {{paramName}}, {{minLength}})
 {{/minLength}}
 {{#maximum}}
-    ({{paramName}} >{{#exclusiveMaximum}}={{/exclusiveMaximum}} {{maximum}}) && error("Invalid value for parameter {{paramName}} when calling {{operationId}}, must be a value less than {{^exclusiveMaximum}}or equal to {{/exclusiveMaximum}}{{maximum}}")
+    Swagger.validate_param("{{paramName}}", "{{operationId}}", :maximum, {{paramName}}, {{maximum}}, {{#exclusiveMaximum}}true{{/exclusiveMaximum}}{{^exclusiveMaximum}}false{{/exclusiveMaximum}})
 {{/maximum}}
 {{#minimum}}
-    ({{paramName}} <{{#exclusiveMinimum}}={{/exclusiveMinimum}} {{minimum}}) && error("Invalid value for parameter {{paramName}} when calling {{operationId}}, must be a value greater than {{^exclusiveMinimum}}or equal to {{/exclusiveMinimum}}{{minimum}}")
+    Swagger.validate_param("{{paramName}}", "{{operationId}}", :minimum, {{paramName}}, {{minimum}}, {{#exclusiveMinimum}}true{{/exclusiveMinimum}}{{^exclusiveMinimum}}false{{/exclusiveMinimum}})
 {{/minimum}}
 {{#maxItems}}
-    (length({{paramName}}) > {{maxItems}}) && error("Invalid value for parameter {{paramName}} when calling {{operationId}}, number of items must be less than or equal to {{maxItems}}")
+    Swagger.validate_param("{{paramName}}", "{{operationId}}", :maxItems, {{paramName}}, {{maxItems}})
 {{/maxItems}}
 {{#minItems}}
-    (length({{paramName}}) < {{minItems}}) && error("Invalid value for parameter {{paramName}} when calling {{operationId}}, number of items must be greater than or equal to {{minItems}}")
+    Swagger.validate_param("{{paramName}}", "{{operationId}}", :minItems, {{paramName}}, {{minItems}})
 {{/minItems}}
-{{/required}}
-{{^required}}
-{{#maxLength}}
-    !isnull({{paramName}}) && (length(get({{paramName}})) > {{maxLength}}) && error("Invalid value for parameter {{paramName}} when calling {{operationId}}, length must be less than or equal to {{maxLength}}")
-{{/maxLength}}
-{{#minLength}}
-    !isnull({{paramName}}) && (length(get({{paramName}})) < {{minLength}}) && error("Invalid value for parameter {{paramName}} when calling {{operationId}}, length must be greater than or equal to {{minLength}}")
-{{/minLength}}
-{{#maximum}}
-    !isnull({{paramName}}) && (get({{paramName}}) >{{#exclusiveMaximum}}={{/exclusiveMaximum}} {{maximum}}) && error("Invalid value for parameter {{paramName}} when calling {{operationId}}, must be a value less than {{^exclusiveMaximum}}or equal to {{/exclusiveMaximum}}{{maximum}}")
-{{/maximum}}
-{{#minimum}}
-    !isnull({{paramName}}) && (get({{paramName}}) <{{#exclusiveMinimum}}={{/exclusiveMinimum}} {{minimum}}) && error("Invalid value for parameter {{paramName}} when calling {{operationId}}, must be a value greater than {{^exclusiveMinimum}}or equal to {{/exclusiveMinimum}}{{minimum}}")
-{{/minimum}}
-{{#maxItems}}
-    !isnull({{paramName}}) && (length(get({{paramName}})) > {{maxItems}}) && error("Invalid value for parameter {{paramName}} when calling {{operationId}}, number of items must be less than or equal to {{maxItems}}")
-{{/maxItems}}
-{{#minItems}}
-    !isnull({{paramName}}) && (length(get({{paramName}})) < {{minItems}}) && error("Invalid value for parameter {{paramName}} when calling {{operationId}}, number of items must be greater than or equal to {{minItems}}")
-{{/minItems}}
-{{/required}}
 
 {{/hasValidation}}
 {{/allParams}}
-    _ctx = Swagger.Ctx(_api, "{{httpMethod}}", {{#returnType}}{{returnType}}{{/returnType}}{{^returnType}}Void{{/returnType}}, "{{path}}", [{{#authMethods}}"{{name}}"{{#hasMore}}, {{/hasMore}}{{/authMethods}}])
+    _ctx = Swagger.Ctx(_api.client, "{{httpMethod}}", {{#returnType}}{{returnType}}{{/returnType}}{{^returnType}}Void{{/returnType}}, "{{path}}", [{{#authMethods}}"{{name}}"{{#hasMore}}, {{/hasMore}}{{/authMethods}}]{{#bodyParam}}, {{#required}}{{paramName}}{{/required}}{{^required}}(isa({{paramName}}, Nullable) && isnull({{paramName}})) ? nothing : {{paramName}}{{/required}}{{/bodyParam}})
 {{#pathParams}}
     Swagger.set_param(_ctx.path, "{{baseName}}", {{paramName}}{{#isListContainer}}; collection_format="{{collectionFormat}}"{{/isListContainer}})
 {{/pathParams}}
@@ -76,14 +54,6 @@ function {{operationId}}(_api::{{classname}}{{#allParams}}, {{paramName}}::{{^re
     Swagger.set_param(_ctx.file, "{{baseName}}", {{paramName}})
 {{/notFile}}
 {{/formParams}}
-{{#bodyParam}}
-{{#required}}
-    _ctx.body = {{paramName}}
-{{/required}}
-{{^required}}
-    _ctx.body = (isa({{paramName}}, Nullable) && isnull({{paramName}})) ? nothing : {{paramName}}
-{{/required}}
-{{/bodyParam}}
     Swagger.set_header_accept(_ctx, [{{#produces}}"{{{mediaType}}}"{{#hasMore}}, {{/hasMore}}{{/produces}}])
     Swagger.set_header_content_type(_ctx, [{{#consumes}}"{{{mediaType}}}"{{#hasMore}}, {{/hasMore}}{{/consumes}}])
     Swagger.exec(_ctx)
