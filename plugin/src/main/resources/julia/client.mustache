@@ -7,10 +7,13 @@ using Base.Random.UUID
 using Requests
 using Swagger
 
+{{#modelOrder}}
+include("model_{{.}}.jl")
+{{/modelOrder}}{{^modelOrder}}
 {{#models}}
 {{#model}}
 include("{{classFilename}}.jl")
-{{/model}}{{/models}}{{#apiInfo}}{{#apis}}
+{{/model}}{{/models}}{{/modelOrder}}{{#apiInfo}}{{#apis}}
 include("api_{{classname}}.jl"){{/apis}}{{/apiInfo}}
 
 # export models
