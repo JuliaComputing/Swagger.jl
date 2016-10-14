@@ -1,10 +1,10 @@
 # collection formats
-const COLL_MULTI = "multi"
+const COLL_MULTI = "multi"  # aliased to CSV, as multi is not supported by Requests.jl (https://github.com/JuliaWeb/Requests.jl/issues/140)
 const COLL_PIPES = "pipes"
 const COLL_SSV = "ssv"
 const COLL_TSV = "tsv"
 const COLL_CSV = "csv"
-const COLL_DLM = Dict{String,String}([COLL_PIPES=>"|", COLL_SSV=>" ", COLL_TSV=>"\t", COLL_CSV=>","])
+const COLL_DLM = Dict{String,String}([COLL_PIPES=>"|", COLL_SSV=>" ", COLL_TSV=>"\t", COLL_CSV=>",", COLL_MULTI=>","])
 
 const DATETIME_FORMATS = (Dates.DateFormat("yyyy-mm-dd HH:MM:SS.sss"), Dates.DateFormat("yyyy-mm-ddTHH:MM:SS.sss"))
 const DATE_FORMATS = (Dates.DateFormat("yyyy-mm-dd"),)
@@ -114,6 +114,8 @@ function set_header_content_type(ctx::Ctx, ctypes::Vector{String})
     return nothing
 end
 
+set_param(params::Dict{String,String}, name::String, value::Void; collection_format=nothing) = nothing
+
 function set_param{T}(params::Dict{String,String}, name::String, value::Nullable{T}; collection_format=nothing)
     isnull(value) && return
     set_param(params, name, get(value); collection_format=collection_format)
@@ -125,7 +127,7 @@ function set_param(params::Dict{String,String}, name::String, value; collection_
     else
         dlm = get(COLL_DLM, collection_format, "")
         isempty(dlm) && throw(SwaggerException("Unsupported collection format $collection_format"))
-        params[name] = join(map((x)->string(x)), dlm)
+        params[name] = join(map((x)->string(x), value), dlm)
     end
 end
 
@@ -137,7 +139,7 @@ function prep_args(ctx::Ctx)
     if !isempty(ctx.file)
         kwargs[:files] = FileParam[]
         for (_k,_v) in ctx.file
-            push!(kwargs[:files], FileParam(readall(_v), "", _k))
+            push!(kwargs[:files], FileParam(read(_v), "", _k))
         end
     end
     if ctx.body !== nothing
@@ -147,20 +149,21 @@ function prep_args(ctx::Ctx)
     return kwargs
 end
 
-response(::Type{Void}, resp::Response) = nothing
-response{T<:Real}(::Type{T}, resp::Response) = response(T, resp.data)
-response{T<:Compat.String}(::Type{T}, resp::Response) = response(T, resp.data)
+response(::Type{Void}, resp::Response) = nothing::Void
+response{T<:Real}(::Type{T}, resp::Response) = response(T, resp.data)::T
+response{T<:Compat.String}(::Type{T}, resp::Response) = response(T, resp.data)::T
 function response{T}(::Type{T}, resp::Response)
     ctype = get(resp.headers, "Content-Type", "application/json")
-    response(T, is_json_mime(ctype) ? JSON.parse(Compat.String(resp.data)) : resp.data)
+    v = response(T, is_json_mime(ctype) ? JSON.parse(Compat.String(resp.data)) : resp.data)
+    v::T
 end
 response{T<:Real}(::Type{T}, data::Vector{UInt8}) = parse(T, Compat.String(data))
-response{T<:Compat.String}(::Type{T}, data::Vector{UInt8}) = Compat.String(data)
+response{T<:Compat.String}(::Type{T}, data::Vector{UInt8}) = Compat.String(data)::T
 response{T}(::Type{T}, data::T) = data
 response{T}(::Type{T}, data) = convert(T, data)
-response{T}(::Type{T}, data::Dict{String,Any}) = from_json(T, data)
+response{T}(::Type{T}, data::Dict{String,Any}) = from_json(T, data)::T
 response{T<:Dict}(::Type{T}, data::Dict{String,Any}) = convert(T, data)
-response{T,V}(::Type{Vector{T}}, data::Vector{V}) = map((v)->response(T, v), data)
+response{T,V}(::Type{Vector{T}}, data::Vector{V}) = [response(T, v) for v in data]
 
 function exec(ctx::Ctx)
     resource_path = replace(ctx.resource, "{format}", "json")
@@ -189,7 +192,12 @@ function from_json{T}(o::T, json::Dict{String,Any})
     o
 end
 
-from_json{T}(o::T, name::Symbol, json::Dict{String,Any}) = (setfield!(o, name, from_json(fieldtype(T, name), json)); o)
+function from_json{T}(o::T, name::Symbol, json::Dict{String,Any})
+    ftype = fieldtype(T, name)
+    fval = from_json(ftype, json)
+    setfield!(o, name, convert(ftype, fval))
+    o
+end
 from_json{T}(o::T, name::Symbol, v) = (setfield!(o, name, convert(fieldtype(T, name), v)); o)
 
 to_json(o) = JSON.json(o)

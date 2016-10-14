@@ -12,7 +12,7 @@ end
 {{{notes}}}
 Returns: {{#returnType}}{{returnType}}{{/returnType}}{{^returnType}}Void{{/returnType}}
 """
-function {{operationId}}(_api::{{classname}}{{#allParams}}, {{paramName}}::{{^required}}Nullable{ {{/required}}{{dataType}}{{^required}} }=nothing{{/required}}{{/allParams}})
+function {{operationId}}(_api::{{classname}}{{#allParams}}{{#required}}, {{paramName}}::{{dataType}}{{/required}}{{/allParams}};{{#allParams}}{{^required}} {{paramName}}=nothing,{{/required}}{{/allParams}})
 {{#allParams}}
 {{#hasValidation}}
 {{#maxLength}}
@@ -36,22 +36,22 @@ function {{operationId}}(_api::{{classname}}{{#allParams}}, {{paramName}}::{{^re
 
 {{/hasValidation}}
 {{/allParams}}
-    _ctx = Swagger.Ctx(_api.client, "{{httpMethod}}", {{#returnType}}{{returnType}}{{/returnType}}{{^returnType}}Void{{/returnType}}, "{{path}}", [{{#authMethods}}"{{name}}"{{#hasMore}}, {{/hasMore}}{{/authMethods}}]{{#bodyParam}}, {{#required}}{{paramName}}{{/required}}{{^required}}(isa({{paramName}}, Nullable) && isnull({{paramName}})) ? nothing : {{paramName}}{{/required}}{{/bodyParam}})
+    _ctx = Swagger.Ctx(_api.client, "{{httpMethod}}", {{#returnType}}{{returnType}}{{/returnType}}{{^returnType}}Void{{/returnType}}, "{{path}}", [{{#authMethods}}"{{name}}"{{#hasMore}}, {{/hasMore}}{{/authMethods}}]{{#bodyParam}}, {{#required}}{{paramName}}{{/required}}{{^required}}Nullable{ {{dataType}} }({{paramName}}){{/required}}{{/bodyParam}})
 {{#pathParams}}
-    Swagger.set_param(_ctx.path, "{{baseName}}", {{paramName}}{{#isListContainer}}; collection_format="{{collectionFormat}}"{{/isListContainer}})
+    Swagger.set_param(_ctx.path, "{{baseName}}", {{paramName}}{{#isListContainer}}; collection_format="{{collectionFormat}}"{{/isListContainer}})  # type {{dataType}}
 {{/pathParams}}
 {{#queryParams}}
-    Swagger.set_param(_ctx.query, "{{baseName}}", {{paramName}}{{#isListContainer}}; collection_format="{{collectionFormat}}"{{/isListContainer}})
+    Swagger.set_param(_ctx.query, "{{baseName}}", {{paramName}}{{#isListContainer}}; collection_format="{{collectionFormat}}"{{/isListContainer}})  # type {{dataType}}
 {{/queryParams}}
 {{#headerParams}}
-    Swagger.set_param(_ctx.header, "{{baseName}}", {{paramName}}{{#isListContainer}}; collection_format="{{collectionFormat}}"{{/isListContainer}})
+    Swagger.set_param(_ctx.header, "{{baseName}}", {{paramName}}{{#isListContainer}}; collection_format="{{collectionFormat}}"{{/isListContainer}})  # type {{dataType}}
 {{/headerParams}}
 {{#formParams}}
 {{#notFile}}
-    Swagger.set_param(_ctx.form, "{{baseName}}", {{paramName}}{{#isListContainer}}; collection_format="{{collectionFormat}}"{{/isListContainer}})
+    Swagger.set_param(_ctx.form, "{{baseName}}", {{paramName}}{{#isListContainer}}; collection_format="{{collectionFormat}}"{{/isListContainer}})  # type {{dataType}}
 {{/notFile}}
 {{^notFile}}
-    Swagger.set_param(_ctx.file, "{{baseName}}", {{paramName}})
+    Swagger.set_param(_ctx.file, "{{baseName}}", {{paramName}})  # type {{dataType}}
 {{/notFile}}
 {{/formParams}}
     Swagger.set_header_accept(_ctx, [{{#produces}}"{{{mediaType}}}"{{#hasMore}}, {{/hasMore}}{{/produces}}])

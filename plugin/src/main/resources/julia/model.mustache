@@ -71,4 +71,5 @@ function set_field!(o::{{classname}}, name::Symbol, val)
 {{/vars}}
     setfield!(o, name, fieldtype({{classname}},name)(val))
 end
-{{/model}}{{/models}}
+
+convert(::Type{ {{classname}} }, json::Dict{String,Any}) = Swagger.from_json({{classname}}, json){{/model}}{{/models}}
