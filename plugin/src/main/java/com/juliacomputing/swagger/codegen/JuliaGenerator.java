@@ -115,6 +115,7 @@ public class JuliaGenerator extends DefaultCodegen implements CodegenConfig {
         typeMapping.put("date", "Date");
         typeMapping.put("DateTime", "DateTime");
         typeMapping.put("File", "String");
+        typeMapping.put("ByteArray", "Vector{UInt8}");
 
         cliOptions.clear();
         cliOptions.add(new CliOption(CodegenConstants.PACKAGE_NAME, "Julia package name.").defaultValue("SwaggerClient"));
@@ -141,7 +142,10 @@ public class JuliaGenerator extends DefaultCodegen implements CodegenConfig {
         }
 
         if (additionalProperties.containsKey(MODEL_ORDER)) {
-            setModelOrder(StringUtils.split((String)additionalProperties.get(MODEL_ORDER), " ,"));
+            String modelOrderVal = (String)additionalProperties.get(MODEL_ORDER);
+            modelOrderVal = modelOrderVal.replace("[", "");
+            modelOrderVal = modelOrderVal.replace("]", "");
+            setModelOrder(StringUtils.split(modelOrderVal, " ,"));
             additionalProperties.put(MODEL_ORDER, modelOrder);
         }
 
@@ -200,6 +204,36 @@ public class JuliaGenerator extends DefaultCodegen implements CodegenConfig {
         }
         // e.g. phone_number_api => PhoneNumberApi
         return camelize(name) + "Api";
+    }
+
+    /**
+     * Sanitize name (parameter, property, method, etc)
+     *
+     * @param name string to be sanitize
+     * @return sanitized string
+     */
+    @Override
+    @SuppressWarnings("static-method")
+    public String sanitizeName(String name) {
+        if (name == null) {
+            LOGGER.error("String to be sanitized is null. Default to ERROR_UNKNOWN");
+            return "ERROR_UNKNOWN";
+        }
+
+        // if the name is just '$', map it to 'value' for the time being.
+        if ("$".equals(name)) {
+            return "value";
+        }
+
+        name = name.replaceAll("\\[\\]", "");
+        name = name.replaceAll("\\[", "_");
+        name = name.replaceAll("\\]", "");
+        name = name.replaceAll("\\(", "_");
+        name = name.replaceAll("\\)", "");
+        name = name.replaceAll("\\.", "_");
+        name = name.replaceAll("-", "_");
+        name = name.replaceAll(" ", "_");
+        return name.replaceAll("[^a-zA-Z0-9_{}]", "");
     }
 
     @Override

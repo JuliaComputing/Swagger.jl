@@ -25,4 +25,4 @@ java -cp /path/to/swagger-codegen-cli.jar:/path/to/julia-swagger-codegen-0.0.1.j
 The configuration file (`config.json`) can have the following options:
 
 - `packageName`: the Julia package to generate (`SwaggerClient` by default)
-- `modelOrder`: model names listed in order of dependency (not ordered by default)
+- `modelOrder`: models listed in order of dependency as space or comma delimited names, or an array of names (not ordered by default)
