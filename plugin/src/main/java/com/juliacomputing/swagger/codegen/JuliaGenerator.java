@@ -355,4 +355,17 @@ public class JuliaGenerator extends DefaultCodegen implements CodegenConfig {
 
         return "nothing";
     }
+
+    public String escapeUnsafeCharacters(String input) {
+        return input;
+    }
+
+    /**
+     * Escape single and/or double quote to avoid code injection 
+     * @param input String to be cleaned up
+     * @return string with quotation mark removed or escaped
+     */
+    public String escapeQuotationMark(String input) {
+        return input.replace("\"", "\\\"");
+    }
 }
