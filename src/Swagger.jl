@@ -7,6 +7,9 @@ using JSON
 
 import Base: convert
 
+abstract SwaggerModel
+abstract SwaggerApi
+
 include("client.jl")
 include("val.jl")
 
