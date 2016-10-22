@@ -52,3 +52,5 @@ function validate_param(param, operation, rule, value, args...)
     msg = string("Invalid value of parameter ", param, " for ", operation, ", ", MSG_INVALID_API_PARAM[rule](args...))
     throw(ValidationException(msg))
 end
+
+validate_field{T<:SwaggerModel}(o::T, name::Symbol, val) = nothing
