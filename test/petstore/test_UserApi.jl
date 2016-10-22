@@ -25,7 +25,7 @@ function test(uri)
     @test createUsersWithListInput(api, [user1, user2]) === nothing
 
     println("   - getUserByName")
-    @test_throws Swagger.ApiException getUserByName(api, "user1")
+    @test_throws Swagger.ApiException getUserByName(api, randstring())
     getuser_result = getUserByName(api, "user2")
     @test isa(getuser_result, User)
 
