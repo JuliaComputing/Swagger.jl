@@ -5,7 +5,7 @@ using HttpCommon
 using Compat
 using JSON
 
-import Base: convert
+import Base: convert, show, summary
 
 abstract SwaggerModel
 abstract SwaggerApi

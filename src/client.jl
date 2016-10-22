@@ -221,3 +221,6 @@ end
 validate_field{T<:SwaggerModel}(o::T, name::Symbol, val) = nothing
 
 convert{T<:SwaggerModel}(::Type{T}, json::Dict{String,Any}) = from_json(T, json)
+
+show{T<:SwaggerModel}(io::IO, model::T) = print(io, JSON.json(model, 2))
+summary{T<:SwaggerModel}(model::T) = print(io, T)
