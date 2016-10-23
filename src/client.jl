@@ -83,10 +83,10 @@ immutable Ctx
     end
 end
 
-is_json_mime(mime::String) = ismatch(r"(?i)application/json(;.*)?", mime)
+is_json_mime(mime::String) = ("*/*" == mime) || ismatch(r"(?i)application/json(;.*)?", mime)
 
 function select_header_accept(accepts::Vector{String})
-    isempty(accepts) && (return "")
+    isempty(accepts) && (return "application/json")
     for accept in accepts
         is_json_mime(accept) && (return accept)
     end
@@ -96,7 +96,7 @@ end
 function select_header_content_type(ctypes::Vector{String})
     isempty(ctypes) && (return "application/json")
     for ctype in ctypes
-        is_json_mime(ctype) && (return ctype)
+        is_json_mime(ctype) && (return (("*/*" == ctype) ? "application/json" : ctype))
     end
     return ctypes[1]
 end
