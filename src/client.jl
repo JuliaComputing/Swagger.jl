@@ -53,9 +53,10 @@ end
 immutable Client
     root::String
     headers::Dict{String,String}
+    get_return_type::Function   # user provided hook to get return type from response data
 
-    function Client(root::String, headers::Dict{String,String}=Dict{String,String}())
-        new(root, headers)
+    function Client(root::String; headers::Dict{String,String}=Dict{String,String}(), get_return_type::Function=(default,data)->default)
+        new(root, headers, get_return_type)
     end
 end
 
@@ -64,6 +65,7 @@ set_cookie(client::Client, ck::String) = set_header("Cookie", ck)
 set_header(client::Client, name::String, value::String) = (client.headers[name] = value)
 
 immutable Ctx
+    client::Client
     method::String
     return_type::Type
     resource::String
@@ -79,7 +81,7 @@ immutable Ctx
     function Ctx(client::Client, method::String, return_type, resource::String, auth, body=nothing)
         resource = client.root * resource
         headers = copy(client.headers)
-        new(method, return_type, resource, auth, Dict{String,String}(), Dict{String,String}(), headers, Dict{String,String}(), Dict{String,String}(), body)
+        new(client, method, return_type, resource, auth, Dict{String,String}(), Dict{String,String}(), headers, Dict{String,String}(), Dict{String,String}(), body)
     end
 end
 
@@ -178,7 +180,7 @@ function exec(ctx::Ctx)
 
     (200 <= resp.status <= 206) || throw(ApiException(resp))
 
-    response(ctx.return_type, resp)
+    response(ctx.client.get_return_type(ctx.return_type, resp), resp)
 end
 
 name_map{T<:SwaggerModel}(o::T) = name_map(T)
