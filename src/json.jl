@@ -22,3 +22,4 @@ function from_json{T<:SwaggerModel}(o::T, name::Symbol, json::Dict{String,Any})
     o
 end
 from_json{T}(o::T, name::Symbol, v) = (setfield!(o, name, convert(fieldtype(T, name), v)); o)
+from_json{T}(o::T, name::Symbol, v::Void) = o

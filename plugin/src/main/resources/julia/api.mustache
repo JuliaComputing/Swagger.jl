@@ -12,7 +12,7 @@ end
 {{{notes}}}
 Returns: {{#returnType}}{{returnType}}{{/returnType}}{{^returnType}}Void{{/returnType}}
 """
-function {{operationId}}(_api::{{classname}}{{#allParams}}{{#required}}, {{paramName}}::{{dataType}}{{/required}}{{/allParams}};{{#allParams}}{{^required}} {{paramName}}=nothing,{{/required}}{{/allParams}})
+function {{operationId}}(_api::{{classname}}{{#allParams}}{{#required}}, {{paramName}}::{{#bodyParam}}Union{ Dict{String,Any},{{/bodyParam}}{{dataType}}{{#bodyParam}} } {{/bodyParam}}{{/required}}{{/allParams}};{{#allParams}}{{^required}} {{paramName}}=nothing,{{/required}}{{/allParams}})
 {{#allParams}}
 {{#hasValidation}}
 {{#maxLength}}
@@ -36,7 +36,7 @@ function {{operationId}}(_api::{{classname}}{{#allParams}}{{#required}}, {{param
 
 {{/hasValidation}}
 {{/allParams}}
-    _ctx = Swagger.Ctx(_api.client, "{{httpMethod}}", {{#returnType}}{{returnType}}{{/returnType}}{{^returnType}}Void{{/returnType}}, "{{path}}", [{{#authMethods}}"{{name}}"{{#hasMore}}, {{/hasMore}}{{/authMethods}}]{{#bodyParam}}, {{#required}}{{paramName}}{{/required}}{{^required}}Nullable{ {{dataType}} }({{paramName}}){{/required}}{{/bodyParam}})
+    _ctx = Swagger.Ctx(_api.client, "{{httpMethod}}", {{#returnType}}{{returnType}}{{/returnType}}{{^returnType}}Void{{/returnType}}, "{{path}}", [{{#authMethods}}"{{name}}"{{#hasMore}}, {{/hasMore}}{{/authMethods}}]{{#bodyParam}}, {{paramName}}{{/bodyParam}})
 {{#pathParams}}
     Swagger.set_param(_ctx.path, "{{baseName}}", {{paramName}}{{#isListContainer}}; collection_format="{{collectionFormat}}"{{/isListContainer}})  # type {{dataType}}
 {{/pathParams}}
