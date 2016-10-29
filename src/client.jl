@@ -153,14 +153,14 @@ end
 
 response(::Type{Void}, resp::Response) = nothing::Void
 response{T<:Real}(::Type{T}, resp::Response) = response(T, resp.data)::T
-response{T<:Compat.String}(::Type{T}, resp::Response) = response(T, resp.data)::T
+response{T<:String}(::Type{T}, resp::Response) = response(T, resp.data)::T
 function response{T}(::Type{T}, resp::Response)
     ctype = get(resp.headers, "Content-Type", "application/json")
-    v = response(T, is_json_mime(ctype) ? JSON.parse(Compat.String(resp.data)) : resp.data)
+    v = response(T, is_json_mime(ctype) ? JSON.parse(String(resp.data)) : resp.data)
     v::T
 end
-response{T<:Real}(::Type{T}, data::Vector{UInt8}) = parse(T, Compat.String(data))
-response{T<:Compat.String}(::Type{T}, data::Vector{UInt8}) = Compat.String(data)::T
+response{T<:Real}(::Type{T}, data::Vector{UInt8}) = parse(T, String(data))
+response{T<:String}(::Type{T}, data::Vector{UInt8}) = String(data)::T
 response{T}(::Type{T}, data::T) = data
 response{T}(::Type{T}, data) = convert(T, data)
 response{T}(::Type{T}, data::Dict{String,Any}) = from_json(T, data)::T

@@ -2,7 +2,6 @@ module Swagger
 
 using Requests
 using HttpCommon
-using Compat
 using JSON
 
 import Base: convert, show, summary
