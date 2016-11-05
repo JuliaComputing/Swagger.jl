@@ -185,6 +185,24 @@ end
 
 name_map{T<:SwaggerModel}(o::T) = name_map(T)
 
+# TODO: will be good to have a comprehensive selector syntax
+function get_field{T<:SwaggerModel}(o::T, path...)
+    val = get_field(o, path[1])
+    rempath = path[2:end]
+    (length(rempath) == 0) && (return val)
+
+    if isa(val, Vector)
+        if isa(rempath[1], Integer)
+            val = val[rempath[1]]
+            rempath = rempath[2:end]
+        else
+            return [get_field(item, rempath...) for item in val]
+        end
+    end
+
+    (length(rempath) == 0) && (return val)
+    get_field(val, rempath...)
+end
 get_field{T<:SwaggerModel}(o::T, name::String) = get_field(o, name_map(o)[name])
 get_field{T<:SwaggerModel}(o::T, name::Symbol) = get(getfield(o, name))
 
