@@ -10,9 +10,12 @@ end
 """
 {{{summary}}}
 {{{notes}}}
-Returns: {{#returnType}}{{returnType}}{{/returnType}}{{^returnType}}Void{{/returnType}}
+{{#allParams}}
+Param: {{paramName}}::{{dataType}}{{#required}} (required){{/required}}
+{{/allParams}}
+Return: {{#returnType}}{{returnType}}{{/returnType}}{{^returnType}}Void{{/returnType}}
 """
-function {{operationId}}(_api::{{classname}}{{#allParams}}{{#required}}, {{paramName}}::{{#bodyParam}}Union{ Dict{String,Any},{{/bodyParam}}{{dataType}}{{#bodyParam}} } {{/bodyParam}}{{/required}}{{/allParams}};{{#allParams}}{{^required}} {{paramName}}=nothing,{{/required}}{{/allParams}})
+function {{operationId}}(_api::{{classname}}{{#allParams}}{{#required}}, {{paramName}}{{^isBodyParam}}::{{dataType}}{{/isBodyParam}}{{/required}}{{/allParams}};{{#allParams}}{{^required}} {{paramName}}=nothing,{{/required}}{{/allParams}})
 {{#allParams}}
 {{#hasValidation}}
 {{#maxLength}}
