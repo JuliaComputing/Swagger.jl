@@ -15,7 +15,7 @@ Param: {{paramName}}::{{dataType}}{{#required}} (required){{/required}}
 {{/allParams}}
 Return: {{#returnType}}{{returnType}}{{/returnType}}{{^returnType}}Void{{/returnType}}
 """
-function {{operationId}}(_api::{{classname}}{{#allParams}}{{#required}}, {{paramName}}{{^isBodyParam}}::{{dataType}}{{/isBodyParam}}{{/required}}{{/allParams}};{{#allParams}}{{^required}} {{paramName}}=nothing,{{/required}}{{/allParams}})
+function {{operationId}}(_api::{{classname}}{{#allParams}}{{#required}}, {{paramName}}{{^isBodyParam}}::{{dataType}}{{/isBodyParam}}{{/required}}{{/allParams}};{{#allParams}}{{^required}} {{paramName}}=nothing,{{/required}}{{/allParams}} _mediaType=nothing)
 {{#allParams}}
 {{#hasValidation}}
 {{#maxLength}}
@@ -58,7 +58,7 @@ function {{operationId}}(_api::{{classname}}{{#allParams}}{{#required}}, {{param
 {{/notFile}}
 {{/formParams}}
     Swagger.set_header_accept(_ctx, [{{#produces}}"{{{mediaType}}}"{{#hasMore}}, {{/hasMore}}{{/produces}}])
-    Swagger.set_header_content_type(_ctx, [{{#consumes}}"{{{mediaType}}}"{{#hasMore}}, {{/hasMore}}{{/consumes}}])
+    Swagger.set_header_content_type(_ctx, (_mediaType === nothing) ? [{{#consumes}}"{{{mediaType}}}"{{#hasMore}}, {{/hasMore}}{{/consumes}}] : [_mediaType])
     Swagger.exec(_ctx)
 end
 
