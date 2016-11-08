@@ -1,3 +1,5 @@
+__precompile__(true)
+
 module Swagger
 
 using Requests
