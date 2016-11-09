@@ -184,6 +184,7 @@ function exec(ctx::Ctx)
 end
 
 name_map{T<:SwaggerModel}(o::T) = name_map(T)
+field_map{T<:SwaggerModel}(o::T) = field_map(T)
 
 # TODO: will be good to have a comprehensive selector syntax
 function get_field{T<:SwaggerModel}(o::T, path...)

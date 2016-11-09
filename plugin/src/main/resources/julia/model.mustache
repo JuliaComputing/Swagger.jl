@@ -18,7 +18,9 @@ type {{classname}} <: SwaggerModel
 end # type {{classname}}
 
 const _name_map_{{classname}} = Dict{String,Symbol}([{{#vars}}"{{baseName}}"=>:{{name}}{{#hasMore}}, {{/hasMore}}{{/vars}}])
+const _field_map_{{classname}} = Dict{Symbol,String}([{{#vars}}:{{name}}=>"{{baseName}}"{{#hasMore}}, {{/hasMore}}{{/vars}}])
 Swagger.name_map(::Type{ {{classname}} }) = _name_map_{{classname}}
+Swagger.field_map(::Type{ {{classname}} }) = _field_map_{{classname}}
 {{#vars}}
 {{#isEnum}}
 

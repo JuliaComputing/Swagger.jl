@@ -6,8 +6,8 @@ using Requests
 using HttpCommon
 using JSON
 
-import Base: convert, show, summary
-import JSON: AssociativeWrapper
+import Base: convert, show, summary, getindex, keys, length
+import JSON: lower
 
 abstract SwaggerModel
 abstract SwaggerApi
