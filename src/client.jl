@@ -54,9 +54,10 @@ immutable Client
     root::String
     headers::Dict{String,String}
     get_return_type::Function   # user provided hook to get return type from response data
+    tls_conf::Nullable{SSLConfig}
 
-    function Client(root::String; headers::Dict{String,String}=Dict{String,String}(), get_return_type::Function=(default,data)->default)
-        new(root, headers, get_return_type)
+    function Client(root::String; headers::Dict{String,String}=Dict{String,String}(), get_return_type::Function=(default,data)->default, tls_conf=nothing)
+        new(root, headers, get_return_type, tls_conf)
     end
 end
 
@@ -148,6 +149,8 @@ function prep_args(ctx::Ctx)
         isempty(ctx.form) || throw(SwaggerException("Can not send both form-encoded data and body data"))
         kwargs[:data] = is_json_mime(get(ctx.header, "Content-Type", "application/json")) ? to_json(ctx.body) : ctx.body
     end
+    # pass TLS conf for ca and client certificates
+    isnull(ctx.client.tls_conf) || (kwargs[:tls_conf] = get(ctx.client.tls_conf))
     return kwargs
 end
 
