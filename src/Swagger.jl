@@ -5,6 +5,7 @@ module Swagger
 using Requests
 using HttpCommon
 using JSON
+using MbedTLS
 
 import Base: convert, show, summary, getindex, keys, length
 import JSON: lower
