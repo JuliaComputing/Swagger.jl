@@ -210,6 +210,27 @@ end
 get_field{T<:SwaggerModel}(o::T, name::String) = get_field(o, name_map(o)[name])
 get_field{T<:SwaggerModel}(o::T, name::Symbol) = get(getfield(o, name))
 
+function isset_field{T<:SwaggerModel}(o::T, path...)
+    ret = isset_field(o, path[1])
+    rempath = path[2:end]
+    (length(rempath) == 0) && (return ret)
+
+    val = get_field(o, path[1])
+    if isa(val, Vector)
+        if isa(rempath[1], Integer)
+            ret = length(val) >= rempath[1]
+            if ret
+                val = val[rempath[1]]
+                rempath = rempath[2:end]
+            end
+        else
+            return [isset_field(item, rempath...) for item in val]
+        end
+    end
+
+    (length(rempath) == 0) && (return ret)
+    isset_field(val, rempath...)
+end
 isset_field{T<:SwaggerModel}(o::T, name::String) = isset_field(o, name_map(o)[name])
 isset_field{T<:SwaggerModel}(o::T, name::Symbol) = !isnull(getfield(o, name))
 
