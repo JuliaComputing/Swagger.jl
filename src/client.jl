@@ -45,8 +45,8 @@ immutable ApiException <: Exception
     resp::Response
 
     function ApiException(resp::Response; reason::String="")
-        isempty(reason) && (reason = get(STATUS_CODES, resp.status, reason))
-        new(resp.status, reason, resp)
+        isempty(reason) && (reason = get(STATUS_CODES, statuscode(resp), reason))
+        new(statuscode(resp), reason, resp)
     end
 end
 
@@ -181,7 +181,7 @@ function exec(ctx::Ctx)
     httpmethod = getfield(Requests, Symbol(lowercase(ctx.method)))
     resp = httpmethod(resource_path; kwargs...)
 
-    (200 <= resp.status <= 206) || throw(ApiException(resp))
+    (200 <= statuscode(resp) <= 206) || throw(ApiException(resp))
 
     response(ctx.client.get_return_type(ctx.return_type, resp), resp)
 end
