@@ -11,6 +11,14 @@ JSONWrapper{T<:SwaggerModel}(o::T) = JSONWrapper(o, map(k->field_map(o)[k], filt
 getindex(w::JSONWrapper, s::String) = get_field(w.wrapped, s)
 keys(w::JSONWrapper) = w.flds
 length(w::JSONWrapper) = length(w.flds)
+start(w::JSONWrapper) = start(w.flds)
+done(w::JSONWrapper, s) = done(w.flds, s)
+function next(w::JSONWrapper, s)
+    name = w.flds[s]
+    val = get_field(w.wrapped, name)
+    nxt = next(w.flds, s)[2]
+    (name=>val, nxt)
+end
 
 lower{T<:SwaggerModel}(o::T) = JSONWrapper(o)
 

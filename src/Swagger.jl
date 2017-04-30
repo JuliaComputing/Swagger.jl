@@ -7,7 +7,7 @@ using HttpCommon
 using JSON
 using MbedTLS
 
-import Base: convert, show, summary, getindex, keys, length
+import Base: convert, show, summary, getindex, keys, length, start, done, next
 import JSON: lower
 
 abstract SwaggerModel
