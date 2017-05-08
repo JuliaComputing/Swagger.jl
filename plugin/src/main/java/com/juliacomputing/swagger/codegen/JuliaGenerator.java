@@ -10,10 +10,7 @@ import org.apache.commons.lang3.StringUtils;
 
 public class JuliaGenerator extends DefaultCodegen implements CodegenConfig {
 
-    public static final String MODEL_ORDER = "modelOrder";
-
     protected String packageName;
-    protected String[] modelOrder;
 
     // source folder where to write the files
     protected String sourceFolder = "src";
@@ -119,15 +116,10 @@ public class JuliaGenerator extends DefaultCodegen implements CodegenConfig {
 
         cliOptions.clear();
         cliOptions.add(new CliOption(CodegenConstants.PACKAGE_NAME, "Julia package name.").defaultValue("SwaggerClient"));
-        cliOptions.add(new CliOption(MODEL_ORDER, "Model names ordered by dependency.").defaultValue(""));
     }
 
     public void setPackageName(String packageName) {
         this.packageName = packageName;
-    }
-
-    public void setModelOrder(String[] modelOrder) {
-        this.modelOrder = modelOrder;
     }
 
     @Override
@@ -139,14 +131,6 @@ public class JuliaGenerator extends DefaultCodegen implements CodegenConfig {
         }
         else {
             setPackageName("SwaggerClient");
-        }
-
-        if (additionalProperties.containsKey(MODEL_ORDER)) {
-            String modelOrderVal = (String)additionalProperties.get(MODEL_ORDER);
-            modelOrderVal = modelOrderVal.replace("[", "");
-            modelOrderVal = modelOrderVal.replace("]", "");
-            setModelOrder(StringUtils.split(modelOrderVal, " ,"));
-            additionalProperties.put(MODEL_ORDER, modelOrder);
         }
 
         additionalProperties.put(CodegenConstants.PACKAGE_NAME, packageName);
