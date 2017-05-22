@@ -9,13 +9,8 @@ using Swagger
 import Swagger: set_field!, get_field, isset_field, validate_field, SwaggerApi, SwaggerModel
 import Base: convert
 
-{{#modelOrder}}
-include("model_{{.}}.jl")
-{{/modelOrder}}{{^modelOrder}}
-{{#models}}
-{{#model}}
-include("{{classFilename}}.jl")
-{{/model}}{{/models}}{{/modelOrder}}{{#apiInfo}}{{#apis}}
+include("modelincludes.jl")
+{{#apiInfo}}{{#apis}}
 include("api_{{classname}}.jl"){{/apis}}{{/apiInfo}}
 
 # export models
