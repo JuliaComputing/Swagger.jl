@@ -24,7 +24,7 @@ end
 function isbasetype(DT)
     try
         T = eval(DT)
-        issubtype(T, Number) || issubtype(T, String)
+        issubtype(T, Number) || issubtype(T, String) || (T === Any) || (T === DateTime)
     catch
         false
     end

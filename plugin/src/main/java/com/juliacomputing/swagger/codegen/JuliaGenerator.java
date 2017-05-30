@@ -110,8 +110,10 @@ public class JuliaGenerator extends DefaultCodegen implements CodegenConfig {
         typeMapping.put("array", "Vector");
         typeMapping.put("map", "Dict");
         typeMapping.put("date", "Date");
+        typeMapping.put("Object", "Any");
         typeMapping.put("DateTime", "DateTime");
         typeMapping.put("File", "String");
+        typeMapping.put("UUID", "String");
         typeMapping.put("ByteArray", "Vector{UInt8}");
 
         cliOptions.clear();
@@ -304,7 +306,7 @@ public class JuliaGenerator extends DefaultCodegen implements CodegenConfig {
         if (p instanceof StringProperty) {
             StringProperty dp = (StringProperty) p;
             if (dp.getDefault() != null) {
-                return "'" + dp.getDefault() + "'";
+                return "\"" + dp.getDefault() + "\"";
             }
         } else if (p instanceof BooleanProperty) {
             BooleanProperty dp = (BooleanProperty) p;
