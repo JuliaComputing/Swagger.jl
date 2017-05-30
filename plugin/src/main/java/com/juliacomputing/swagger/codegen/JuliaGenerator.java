@@ -192,6 +192,16 @@ public class JuliaGenerator extends DefaultCodegen implements CodegenConfig {
         return camelize(name) + "Api";
     }
 
+    @Override
+    public String toParamName(String name) {
+        return sanitizeName(name);
+    }
+
+    @Override
+    public String toApiVarName(String name) {
+        return sanitizeName(name);
+    }
+
     /**
      * Sanitize name (parameter, property, method, etc)
      *
