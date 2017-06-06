@@ -88,7 +88,11 @@ function gen(typename, TT, TF, generated, io=STDOUT)
     (typename in generated) && return
     if !satisfied(typename, TT, generated)
         for T in TT[typename]
-            gen(T, TT, TF, generated, io)
+            if T == typename
+                info("found recursive type use in ", T)
+            else
+                gen(T, TT, TF, generated, io)
+            end
         end
     end
     println(io, "include(\"", TF[typename], "\")")
