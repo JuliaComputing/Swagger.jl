@@ -15,12 +15,12 @@ include("api_{{classname}}.jl"){{/apis}}{{/apiInfo}}
 
 # export models
 {{#models}}
-export {{#model}}{{classname}}{{#hasMore}}, {{/hasMore}}{{/model}}
+export convert{{#model}}, {{classname}}{{/model}}
 {{/models}}
 
 # export operations
 {{#apiInfo}}
-export {{#apis}}{{classname}}{{#hasMore}}, {{/hasMore}}{{/apis}}
+export convert{{#apis}}, {{classname}}{{/apis}}
 {{/apiInfo}}
 
 export check_required, set_field!, get_field, isset_field, convert

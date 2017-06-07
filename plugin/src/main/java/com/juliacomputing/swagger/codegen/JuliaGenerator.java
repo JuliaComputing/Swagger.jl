@@ -2,6 +2,7 @@ package com.juliacomputing.swagger.codegen;
 
 import io.swagger.codegen.*;
 import io.swagger.models.properties.*;
+import io.swagger.models.parameters.*;
 
 import java.util.*;
 import java.io.File;
@@ -148,7 +149,11 @@ public class JuliaGenerator extends DefaultCodegen implements CodegenConfig {
      */
     @Override
     public String escapeReservedWord(String name) {
-        return "_" + name;  // add an underscore to the name
+        if (reservedWords.contains(name)) {
+            return "_" + name;  // add an underscore to the name
+        } else {
+            return name;
+        }
     }
 
     /**
@@ -194,12 +199,17 @@ public class JuliaGenerator extends DefaultCodegen implements CodegenConfig {
 
     @Override
     public String toParamName(String name) {
-        return sanitizeName(name);
+        return escapeReservedWord(sanitizeName(name));
     }
 
     @Override
     public String toApiVarName(String name) {
-        return sanitizeName(name);
+        return escapeReservedWord(sanitizeName(name));
+    }
+
+    @Override
+    public String toVarName(String name) {
+        return escapeReservedWord(sanitizeName(name));
     }
 
     /**
@@ -363,5 +373,24 @@ public class JuliaGenerator extends DefaultCodegen implements CodegenConfig {
      */
     public String escapeQuotationMark(String input) {
         return input.replace("\"", "\\\"");
+    }
+
+    private String escapeBaseName(String name) {
+        name = name.replaceAll("\\$", "\\\\\\$");
+        return name;
+    }
+
+    @Override
+    public CodegenParameter fromParameter(Parameter param, Set<String> imports) {
+        CodegenParameter parameter = super.fromParameter(param, imports);
+        parameter.baseName = escapeBaseName(parameter.baseName);
+        return parameter;
+    }
+
+    @Override
+    public CodegenProperty fromProperty(String name, Property p) {
+        CodegenProperty property = super.fromProperty(name, p);
+        property.baseName = escapeBaseName(property.baseName);
+        return property;
     }
 }
