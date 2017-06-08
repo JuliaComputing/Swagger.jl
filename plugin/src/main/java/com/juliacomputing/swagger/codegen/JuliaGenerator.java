@@ -50,8 +50,8 @@ public class JuliaGenerator extends DefaultCodegen implements CodegenConfig {
     public JuliaGenerator() {
         super();
 
-        supportsInheritance = false;
-        supportsMixins = false;
+        supportsInheritance = true;
+        supportsMixins = true;
 
         // set the output folder here
         outputFolder = "generated-code/julia";

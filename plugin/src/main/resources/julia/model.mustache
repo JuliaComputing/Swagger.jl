@@ -4,43 +4,43 @@
 # Do not modify this file directly. Modify the swagger specification instead.
 
 type {{classname}} <: SwaggerModel
-{{#vars}}
+{{#allVars}}
     {{name}}::Nullable{ {{datatype}} } # {{baseName}}
-{{/vars}}
+{{/allVars}}
 
-    function {{classname}}(;{{#vars}}{{name}}={{#defaultValue}}{{{defaultValue}}}{{/defaultValue}}{{^defaultValue}}nothing{{/defaultValue}}{{#hasMore}}, {{/hasMore}}{{/vars}})
+    function {{classname}}(;{{#allVars}}{{name}}={{#defaultValue}}{{{defaultValue}}}{{/defaultValue}}{{^defaultValue}}nothing{{/defaultValue}}{{#hasMore}}, {{/hasMore}}{{/allVars}})
         o = new()
-        {{#vars}}
+        {{#allVars}}
         set_field!(o, :{{name}}, {{name}})
-        {{/vars}}
+        {{/allVars}}
         o
     end
 end # type {{classname}}
 
-const _name_map_{{classname}} = Dict{String,Symbol}([{{#vars}}"{{baseName}}"=>:{{name}}{{#hasMore}}, {{/hasMore}}{{/vars}}])
-const _field_map_{{classname}} = Dict{Symbol,String}([{{#vars}}:{{name}}=>"{{baseName}}"{{#hasMore}}, {{/hasMore}}{{/vars}}])
+const _name_map_{{classname}} = Dict{String,Symbol}([{{#allVars}}"{{baseName}}"=>:{{name}}{{#hasMore}}, {{/hasMore}}{{/allVars}}])
+const _field_map_{{classname}} = Dict{Symbol,String}([{{#allVars}}:{{name}}=>"{{baseName}}"{{#hasMore}}, {{/hasMore}}{{/allVars}}])
 Swagger.name_map(::Type{ {{classname}} }) = _name_map_{{classname}}
 Swagger.field_map(::Type{ {{classname}} }) = _field_map_{{classname}}
-{{#vars}}
+{{#allVars}}
 {{#isEnum}}
 
 const _allowed_{{classname}}_{{name}} = [{{#allowableValues}}{{#values}}"{{{this}}}"{{^-last}}, {{/-last}}{{/values}}{{/allowableValues}}]
 {{/isEnum}}
-{{/vars}}
+{{/allVars}}
 
 function check_required(o::{{classname}})
-{{#vars}}
+{{#allVars}}
 {{^isEnum}}
 {{#required}}
     isnull(o.{{name}}) && (return false)
 {{/required}}
 {{/isEnum}}
-{{/vars}}
+{{/allVars}}
     true
 end
 
 function validate_field(o::{{classname}}, name::Symbol, val)
-{{#vars}}
+{{#allVars}}
 {{#isEnum}}
     if name === :{{name}}
         Swagger.validate_param(name, "{{classname}}", :enum, val, _allowed_{{classname}}_{{name}})
@@ -70,5 +70,5 @@ function validate_field(o::{{classname}}, name::Symbol, val)
     end
 {{/hasValidation}}
 {{/isEnum}}
-{{/vars}}
+{{/allVars}}
 end{{/model}}{{/models}}
