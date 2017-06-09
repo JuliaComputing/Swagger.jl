@@ -28,6 +28,7 @@ from_json{T}(::Type{Nullable{T}}, json::Dict{String,Any}) = from_json(T, json)
 from_json{T}(::Type{T}, json::Dict{String,Any}) = from_json(T(), json)
 from_json{T<:Dict}(::Type{T}, json::Dict{String,Any}) = convert(T, json)
 from_json{T<:String}(::Type{T}, j::Dict{String,Any}) = to_json(j)
+from_json(::Type{Any}, j::Dict{String,Any}) = j
 
 function from_json{T<:SwaggerModel}(o::T, json::Dict{String,Any})
     nmap = name_map(o)
