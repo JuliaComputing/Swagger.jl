@@ -12,7 +12,14 @@ const DATE_FORMATS = (Dates.DateFormat("yyyy-mm-dd"),)
 function convert(::Type{DateTime}, str::String)
     # strip off timezone, as Julia DateTime does not parse it
     if '+' in str
-        str = split(str, "+")[1]
+        str = split(str, '+')[1]
+    end
+    # truncate micro/nano seconds to milliseconds, as Julia DateTime does not parse it
+    if '.' in str
+        uptosec,subsec = split(str, '.')
+        if length(subsec) > 3
+            str = uptosec * "." * subsec[1:3]
+        end
     end
     for fmt in DATETIME_FORMATS
         try
