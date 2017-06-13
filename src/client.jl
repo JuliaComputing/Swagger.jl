@@ -143,6 +143,7 @@ end
 
 function prep_args(ctx::Ctx)
     kwargs = Dict{Symbol,Any}()
+    isempty(ctx.file) && (ctx.body === nothing) && !("Content-Length" in keys(ctx.header)) && (ctx.header["Content-Length"] = "0")
     isempty(ctx.query) || (kwargs[:query] = ctx.query)
     isempty(ctx.header) || (kwargs[:headers] = ctx.header)
     isempty(ctx.form) || (kwargs[:data] = ctx.form)
@@ -166,6 +167,7 @@ response{T<:Real}(::Type{T}, resp::Response) = response(T, resp.data)::T
 response{T<:String}(::Type{T}, resp::Response) = response(T, resp.data)::T
 function response{T}(::Type{T}, resp::Response)
     ctype = get(resp.headers, "Content-Type", "application/json")
+    (length(resp.data) == 0) && return T()
     v = response(T, is_json_mime(ctype) ? JSON.parse(String(resp.data)) : resp.data)
     v::T
 end
