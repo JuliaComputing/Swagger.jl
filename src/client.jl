@@ -64,6 +64,7 @@ immutable Client
     tls_conf::Nullable{SSLConfig}
 
     function Client(root::String; headers::Dict{String,String}=Dict{String,String}(), get_return_type::Function=(default,data)->default, tls_conf=nothing)
+        endswith(root, '/') && warn("Root URI ($root) terminates with '/'. Ensure that resource paths do not begin with '/'. This is unconventional.")
         new(root, headers, get_return_type, tls_conf)
     end
 end
