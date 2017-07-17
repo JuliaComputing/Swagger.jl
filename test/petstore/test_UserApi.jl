@@ -26,8 +26,9 @@ function test(uri)
 
     println("   - getUserByName")
     @test_throws Swagger.ApiException getUserByName(api, randstring())
-    getuser_result = getUserByName(api, "testuser")
-    @test isa(getuser_result, User)
+    @test_throws Swagger.ApiException getUserByName(api, "testuser")
+    #getuser_result = getUserByName(api, "testuser")
+    #@test isa(getuser_result, User)
 
     #println("   - updateUser")
     #@test updateUser(api, "testuser2", getuser_result) === nothing

@@ -6,12 +6,13 @@ using Requests
 using HttpCommon
 using JSON
 using MbedTLS
+using Compat
 
 import Base: convert, show, summary, getindex, keys, length, start, done, next
 import JSON: lower
 
-abstract SwaggerModel
-abstract SwaggerApi
+@compat abstract type SwaggerModel end
+@compat abstract type SwaggerApi end
 
 include("client.jl")
 include("json.jl")
