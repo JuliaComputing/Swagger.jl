@@ -242,6 +242,23 @@ public class JuliaGenerator extends DefaultCodegen implements CodegenConfig {
         return name.replaceAll("[^a-zA-Z0-9_{}]", "");
     }
 
+    /**
+     * Sanitize tag
+     *
+     * @param tag Tag
+     * @return Sanitized tag
+     */
+    public String sanitizeTag(String tag) {
+        tag = camelize(sanitizeName(tag));
+
+        // tag starts with numbers
+        if (tag.matches("^\\d.*")) {
+            tag = "Class" + tag;
+        }
+
+        return tag;
+    }
+
     @Override
     public String toModelName(String name) {
         name = sanitizeName(name); // FIXME: a parameter should not be assigned. Also declare the methods parameters as 'final'.
