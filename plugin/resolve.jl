@@ -84,29 +84,35 @@ end
 
 satisfied(typename, TT, generated) = (isempty(TT[typename]) || (typename in generated))
 
-function gen(typename, TT, TF, generated, io=STDOUT)
+function gen(typename, TT, TF, generated, genstack, io=STDOUT)
     (typename in generated) && return
     if !satisfied(typename, TT, generated)
+        push!(genstack, typename)
         for T in TT[typename]
             if T == typename
                 info("found recursive type use in ", T)
             else
-                gen(T, TT, TF, generated, io)
+                if T in genstack
+                    error("circular type references are not supported, found $T and $typename")
+                end
+                gen(T, TT, TF, generated, genstack, io)
             end
         end
     end
     println(io, "include(\"", TF[typename], "\")")
     push!(generated, typename)
+    (typename in genstack) && delete!(genstack, typename)
     nothing
 end
 
 function genincludes(folder::String)
     generated = Set{Symbol}()
+    genstack = Set{Symbol}()
     TT, TF = gentypetree(folder)
 
     open(fullsrcpath(folder, "modelincludes.jl"), "w") do inclfile
         for typename in keys(TT)
-            gen(typename, TT, TF, generated, inclfile)
+            gen(typename, TT, TF, generated, genstack, inclfile)
         end
     end
 
