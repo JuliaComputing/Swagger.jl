@@ -185,11 +185,16 @@ function exec(ctx::Ctx)
     for (k,v) in ctx.path
         resource_path = replace(resource_path, "{$k}", v)
     end
+    info("resource_path = $resource_path")
 
     # TODO: use auth_settings for authentication
     kwargs = prep_args(ctx)
+    info("kwargs = $kwargs")
+    info("ctx.method = $(ctx.method)")
     httpmethod = getfield(Requests, Symbol(lowercase(ctx.method)))
+    info("httpmethod = $httpmethod")
     resp = httpmethod(resource_path; kwargs...)
+    info("resp = $resp")
 
     (200 <= statuscode(resp) <= 206) || throw(ApiException(resp))
 
