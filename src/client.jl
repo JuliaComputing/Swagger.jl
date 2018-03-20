@@ -94,7 +94,7 @@ immutable Ctx
     end
 end
 
-is_json_mime(mime::String) = ("*/*" == mime) || ismatch(r"(?i)application/json(;.*)?", mime)
+is_json_mime(mime::String) = ("*/*" == mime) || ismatch(r"(?i)application/json(;.*)?", mime) || ismatch(r"(?i)application/(.*)-patch\+json(;.*)?", mime)
 
 function select_header_accept(accepts::Vector{String})
     isempty(accepts) && (return "application/json")
