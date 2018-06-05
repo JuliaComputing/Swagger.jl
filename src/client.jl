@@ -9,6 +9,8 @@ const COLL_DLM = Dict{String,String}([COLL_PIPES=>"|", COLL_SSV=>" ", COLL_TSV=>
 const DATETIME_FORMATS = (Dates.DateFormat("yyyy-mm-dd HH:MM:SS.sss"), Dates.DateFormat("yyyy-mm-ddTHH:MM:SS.sss"), Dates.DateFormat("yyyy-mm-ddTHH:MM:SSZ"))
 const DATE_FORMATS = (Dates.DateFormat("yyyy-mm-dd"),)
 
+const DEFAULT_TIMEOUT_SECS = 5*60
+
 function convert(::Type{DateTime}, str::String)
     # strip off timezone, as Julia DateTime does not parse it
     if '+' in str
@@ -86,11 +88,12 @@ immutable Ctx
     form::Dict{String,String}
     file::Dict{String,String}
     body::Any
+    timeout::Int
 
-    function Ctx(client::Client, method::String, return_type, resource::String, auth, body=nothing)
+    function Ctx(client::Client, method::String, return_type, resource::String, auth, body=nothing; timeout::Int=DEFAULT_TIMEOUT_SECS)
         resource = client.root * resource
         headers = copy(client.headers)
-        new(client, method, return_type, resource, auth, Dict{String,String}(), Dict{String,String}(), headers, Dict{String,String}(), Dict{String,String}(), body)
+        new(client, method, return_type, resource, auth, Dict{String,String}(), Dict{String,String}(), headers, Dict{String,String}(), Dict{String,String}(), body, timeout)
     end
 end
 
@@ -160,6 +163,8 @@ function prep_args(ctx::Ctx)
     end
     # pass TLS conf for ca and client certificates
     isnull(ctx.client.tls_conf) || (kwargs[:tls_conf] = get(ctx.client.tls_conf))
+    # set the timeout
+    kwargs[:timeout] = ctx.timeout
     return kwargs
 end
 
