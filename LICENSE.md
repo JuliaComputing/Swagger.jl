@@ -1,7 +1,7 @@
 The Swagger.jl package is licensed under the MIT "Expat" License:
 
-> Copyright (c) 2016: Tanmay Mohapatra.
-> 
+Copyright (c) 2018: Julia Computing Inc. All rights reserved.
+ 
 > Permission is hereby granted, free of charge, to any person obtaining a copy
 > of this software and associated documentation files (the "Software"), to deal
 > in the Software without restriction, including without limitation the rights
