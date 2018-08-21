@@ -1,8 +1,8 @@
 module TestPetApi
 
-using MyPetStore
+using ..MyPetStore
 using Swagger
-using Base.Test
+using Test
 
 function test(uri)
     println("testing PetApi...")

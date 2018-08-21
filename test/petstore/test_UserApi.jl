@@ -1,8 +1,9 @@
 module TestUserApi
 
-using MyPetStore
+using ..MyPetStore
 using Swagger
-using Base.Test
+using Test
+using Random
 
 const TEST_USER = "jlswag"
 const TEST_USER1 = "jlswag1"

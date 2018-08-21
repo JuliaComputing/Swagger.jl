@@ -2,7 +2,7 @@
 # Do not modify this file directly. Modify the swagger specification instead.
 
 {{#operations}}
-immutable {{classname}} <: SwaggerApi
+struct {{classname}} <: SwaggerApi
     client::Swagger.Client
 end
 
@@ -13,7 +13,7 @@ end
 {{#allParams}}
 Param: {{paramName}}::{{dataType}}{{#required}} (required){{/required}}
 {{/allParams}}
-Return: {{#returnType}}{{returnType}}{{/returnType}}{{^returnType}}Void{{/returnType}}
+Return: {{#returnType}}{{returnType}}{{/returnType}}{{^returnType}}Nothing{{/returnType}}
 """
 function {{operationId}}(_api::{{classname}}{{#allParams}}{{#required}}, {{paramName}}{{^isBodyParam}}::{{dataType}}{{/isBodyParam}}{{/required}}{{/allParams}};{{#allParams}}{{^required}} {{paramName}}=nothing,{{/required}}{{/allParams}} _mediaType=nothing)
 {{#allParams}}
@@ -39,7 +39,7 @@ function {{operationId}}(_api::{{classname}}{{#allParams}}{{#required}}, {{param
 
 {{/hasValidation}}
 {{/allParams}}
-    _ctx = Swagger.Ctx(_api.client, "{{httpMethod}}", {{#returnType}}{{returnType}}{{/returnType}}{{^returnType}}Void{{/returnType}}, "{{path}}", [{{#authMethods}}"{{name}}"{{#hasMore}}, {{/hasMore}}{{/authMethods}}]{{#bodyParam}}, {{paramName}}{{/bodyParam}})
+    _ctx = Swagger.Ctx(_api.client, "{{httpMethod}}", {{#returnType}}{{returnType}}{{/returnType}}{{^returnType}}Nothing{{/returnType}}, "{{path}}", [{{#authMethods}}"{{name}}"{{#hasMore}}, {{/hasMore}}{{/authMethods}}]{{#bodyParam}}, {{paramName}}{{/bodyParam}})
 {{#pathParams}}
     Swagger.set_param(_ctx.path, "{{baseName}}", {{paramName}}{{#isListContainer}}; collection_format="{{collectionFormat}}"{{/isListContainer}})  # type {{dataType}}
 {{/pathParams}}

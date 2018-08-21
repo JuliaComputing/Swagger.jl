@@ -44,30 +44,31 @@ function convert(::Type{Date}, str::String)
     throw(SwaggerException("Unsupported Date format: $str"))
 end
 
-immutable SwaggerException <: Exception
+struct SwaggerException <: Exception
     reason::String
 end
 
-immutable ApiException <: Exception
+struct ApiException <: Exception
     status::Int
     reason::String
-    resp::Response
+    resp::HTTP.Response
 
-    function ApiException(resp::Response; reason::String="")
-        isempty(reason) && (reason = get(STATUS_CODES, statuscode(resp), reason))
-        new(statuscode(resp), reason, resp)
+    function ApiException(resp::HTTP.Response; reason::String="")
+        isempty(reason) && (reason = get(HTTP.Messages.STATUS_MESSAGES, resp.status, reason))
+        new(resp.status, reason, resp)
     end
 end
 
-immutable Client
+struct Client
     root::String
     headers::Dict{String,String}
     get_return_type::Function   # user provided hook to get return type from response data
-    tls_conf::Nullable{SSLConfig}
+    clnthandle::HTTP.Client
 
-    function Client(root::String; headers::Dict{String,String}=Dict{String,String}(), get_return_type::Function=(default,data)->default, tls_conf=nothing)
+    function Client(root::String; headers::Dict{String,String}=Dict{String,String}(), get_return_type::Function=(default,data)->default, tlsconfig=nothing)
         endswith(root, '/') && warn("Root URI ($root) terminates with '/'. Ensure that resource paths do not begin with '/'. This is unconventional.")
-        new(root, headers, get_return_type, tls_conf)
+        clnthandle = HTTP.Client(; tlsconfig=tlsconfig, status_exception=false, retries=0)
+        new(root, headers, get_return_type, clnthandle)
     end
 end
 
@@ -75,7 +76,7 @@ set_user_agent(client::Client, ua::String) = set_header("User-Agent", ua)
 set_cookie(client::Client, ck::String) = set_header("Cookie", ck)
 set_header(client::Client, name::String, value::String) = (client.headers[name] = value)
 
-immutable Ctx
+struct Ctx
     client::Client
     method::String
     return_type::Type
@@ -97,7 +98,7 @@ immutable Ctx
     end
 end
 
-is_json_mime(mime::String) = ("*/*" == mime) || ismatch(r"(?i)application/json(;.*)?", mime) || ismatch(r"(?i)application/(.*)-patch\+json(;.*)?", mime)
+is_json_mime(mime::T) where {T <: AbstractString} = ("*/*" == mime) || occursin(r"(?i)application/json(;.*)?", mime) || occursin(r"(?i)application/(.*)-patch\+json(;.*)?", mime)
 
 function select_header_accept(accepts::Vector{String})
     isempty(accepts) && (return "application/json")
@@ -115,27 +116,24 @@ function select_header_content_type(ctypes::Vector{String})
     return ctypes[1]
 end
 
-set_header_accept{T}(ctx::Ctx, accepts::Vector{T}) = set_header_accept(ctx, convert(Vector{String}, accepts))
+set_header_accept(ctx::Ctx, accepts::Vector{T}) where {T} = set_header_accept(ctx, convert(Vector{String}, accepts))
 function set_header_accept(ctx::Ctx, accepts::Vector{String})
     accept = select_header_accept(accepts)
     !isempty(accept) && (ctx.header["Accept"] = accept)
     return nothing
 end
 
-set_header_content_type{T}(ctx::Ctx, ctypes::Vector{T}) = set_header_content_type(ctx, convert(Vector{String}, ctypes))
+set_header_content_type(ctx::Ctx, ctypes::Vector{T}) where {T} = set_header_content_type(ctx, convert(Vector{String}, ctypes))
 function set_header_content_type(ctx::Ctx, ctypes::Vector{String})
     ctx.header["Content-Type"] = select_header_content_type(ctypes)
     return nothing
 end
 
-set_param(params::Dict{String,String}, name::String, value::Void; collection_format=nothing) = nothing
+set_param(params::Dict{String,String}, name::String, value::Nothing; collection_format=nothing) = nothing
 
-function set_param{T}(params::Dict{String,String}, name::String, value::Nullable{T}; collection_format=nothing)
-    isnull(value) && return
-    set_param(params, name, get(value); collection_format=collection_format)
-end
+function set_param(params::Dict{String,String}, name::String, value::Union{Nothing,T}; collection_format=nothing) where {T}
+    (value === nothing) && return
 
-function set_param(params::Dict{String,String}, name::String, value; collection_format::String="")
     if !isa(value, Vector) || isempty(collection_format)
         params[name] = string(value)
     else
@@ -147,65 +145,72 @@ end
 
 function prep_args(ctx::Ctx)
     kwargs = Dict{Symbol,Any}()
-    isempty(ctx.file) && (ctx.body === nothing) && !("Content-Length" in keys(ctx.header)) && (ctx.header["Content-Length"] = "0")
+    isempty(ctx.file) && (ctx.body === nothing) && isempty(ctx.form) && !("Content-Length" in keys(ctx.header)) && (ctx.header["Content-Length"] = "0")
     isempty(ctx.query) || (kwargs[:query] = ctx.query)
     isempty(ctx.header) || (kwargs[:headers] = ctx.header)
-    isempty(ctx.form) || (kwargs[:data] = ctx.form)
+    if !isempty(ctx.form)
+        ctx.header["Content-Type"] = "application/x-www-form-urlencoded"
+        kwargs[:body] = HTTP.URIs.escapeuri(ctx.form)
+    end
     if !isempty(ctx.file)
-        kwargs[:files] = FileParam[]
+        body = get!(kwargs, :body, Dict())
+        idx = 1
         for (_k,_v) in ctx.file
-            push!(kwargs[:files], FileParam(read(_v), "", _k))
+            body["multi$idx"] = HTTP.Multipart(_k, open(_v))
+            idx += 1
         end
     end
     if ctx.body !== nothing
-        isempty(ctx.form) || throw(SwaggerException("Can not send both form-encoded data and body data"))
-        kwargs[:data] = is_json_mime(get(ctx.header, "Content-Type", "application/json")) ? to_json(ctx.body) : ctx.body
+        (isempty(ctx.form) && isempty(ctx.file)) || throw(SwaggerException("Can not send both form-encoded data and a request body"))
+        if is_json_mime(get(ctx.header, "Content-Type", "application/json"))
+            kwargs[:body] = to_json(ctx.body)
+        elseif ("application/x-www-form-urlencoded" == ctx.header["Content-Type"]) && isa(ctx.body, Dict)
+            kwargs[:body] = HTTP.URIs.escapeuri(ctx.body)
+        else
+            kwargs[:body] = ctx.body
+        end
     end
-    # pass TLS conf for ca and client certificates
-    isnull(ctx.client.tls_conf) || (kwargs[:tls_conf] = get(ctx.client.tls_conf))
     # set the timeout
-    kwargs[:timeout] = ctx.timeout
+    kwargs[:readtimeout] = ctx.timeout
     return kwargs
 end
 
-response(::Type{Void}, resp::Response) = nothing::Void
-response{T<:Real}(::Type{T}, resp::Response) = response(T, resp.data)::T
-response{T<:String}(::Type{T}, resp::Response) = response(T, resp.data)::T
-function response{T}(::Type{T}, resp::Response)
-    ctype = get(resp.headers, "Content-Type", "application/json")
-    (length(resp.data) == 0) && return T()
-    v = response(T, is_json_mime(ctype) ? JSON.parse(String(resp.data)) : resp.data)
+response(::Type{Nothing}, resp::HTTP.Response) = nothing::Nothing
+response(::Type{T}, resp::HTTP.Response) where {T <: Real} = response(T, resp.body)::T
+response(::Type{T}, resp::HTTP.Response) where {T <: String} = response(T, resp.body)::T
+function response(::Type{T}, resp::HTTP.Response) where {T}
+    ctype = HTTP.header(resp, "Content-Type", "application/json")
+    (length(resp.body) == 0) && return T()
+    v = response(T, is_json_mime(ctype) ? JSON.parse(String(resp.body)) : resp.body)
     v::T
 end
-response{T<:Real}(::Type{T}, data::Vector{UInt8}) = parse(T, String(data))
-response{T<:String}(::Type{T}, data::Vector{UInt8}) = String(data)::T
-response{T}(::Type{T}, data::T) = data
-response{T}(::Type{T}, data) = convert(T, data)
-response{T}(::Type{T}, data::Dict{String,Any}) = from_json(T, data)::T
-response{T<:Dict}(::Type{T}, data::Dict{String,Any}) = convert(T, data)
-response{T,V}(::Type{Vector{T}}, data::Vector{V}) = [response(T, v) for v in data]
+response(::Type{T}, data::Vector{UInt8}) where {T<:Real} = parse(T, String(data))
+response(::Type{T}, data::Vector{UInt8}) where {T<:String} = String(data)::T
+response(::Type{T}, data::T) where {T} = data
+response(::Type{T}, data) where {T} = convert(T, data)
+response(::Type{T}, data::Dict{String,Any}) where {T} = from_json(T, data)::T
+response(::Type{T}, data::Dict{String,Any}) where {T<:Dict} = convert(T, data)
+response(::Type{Vector{T}}, data::Vector{V}) where {T,V} = [response(T, v) for v in data]
 
 function exec(ctx::Ctx)
-    resource_path = replace(ctx.resource, "{format}", "json")
+    resource_path = replace(ctx.resource, "{format}"=>"json")
     for (k,v) in ctx.path
-        resource_path = replace(resource_path, "{$k}", v)
+        resource_path = replace(resource_path, "{$k}"=>v)
     end
 
     # TODO: use auth_settings for authentication
     kwargs = prep_args(ctx)
-    httpmethod = getfield(Requests, Symbol(lowercase(ctx.method)))
-    resp = httpmethod(resource_path; kwargs...)
-
-    (200 <= statuscode(resp) <= 206) || throw(ApiException(resp))
+    resp = HTTP.request(ctx.client.clnthandle, uppercase(ctx.method), HTTP.URIs.URI(resource_path); kwargs...)
+    (200 <= resp.status <= 206) || throw(ApiException(resp))
 
     response(ctx.client.get_return_type(ctx.return_type, resp), resp)
 end
 
-name_map{T<:SwaggerModel}(o::T) = name_map(T)
-field_map{T<:SwaggerModel}(o::T) = field_map(T)
+name_map(o::T) where {T<:SwaggerModel} = name_map(T)
+field_map(o::T) where {T<:SwaggerModel} = field_map(T)
 
 # TODO: will be good to have a comprehensive selector syntax
-function get_field{T<:SwaggerModel}(o::T, path...)
+function get_field(o::T, path...) where {T<:SwaggerModel}
     val = get_field(o, path[1])
     rempath = path[2:end]
     (length(rempath) == 0) && (return val)
@@ -222,10 +227,10 @@ function get_field{T<:SwaggerModel}(o::T, path...)
     (length(rempath) == 0) && (return val)
     get_field(val, rempath...)
 end
-get_field{T<:SwaggerModel}(o::T, name::String) = get_field(o, name_map(o)[name])
-get_field{T<:SwaggerModel}(o::T, name::Symbol) = get(getfield(o, name))
+get_field(o::T, name::String) where {T<:SwaggerModel} = get_field(o, name_map(o)[name])
+get_field(o::T, name::Symbol) where {T<:SwaggerModel} = getfield(o, name)
 
-function isset_field{T<:SwaggerModel}(o::T, path...)
+function isset_field(o::T, path...) where {T<:SwaggerModel}
     ret = isset_field(o, path[1])
     rempath = path[2:end]
     (length(rempath) == 0) && (return ret)
@@ -246,17 +251,28 @@ function isset_field{T<:SwaggerModel}(o::T, path...)
     (length(rempath) == 0) && (return ret)
     isset_field(val, rempath...)
 end
-isset_field{T<:SwaggerModel}(o::T, name::String) = isset_field(o, name_map(o)[name])
-isset_field{T<:SwaggerModel}(o::T, name::Symbol) = !isnull(getfield(o, name))
+isset_field(o::T, name::String) where {T<:SwaggerModel} = isset_field(o, name_map(o)[name])
+isset_field(o::T, name::Symbol) where {T<:SwaggerModel} = (getfield(o, name) !== nothing)
 
-set_field!{T<:SwaggerModel}(o::T, name::String, val) = set_field!(o, name_map(o)[name], val)
-function set_field!{T<:SwaggerModel}(o::T, name::Symbol, val)
+set_field!(o::T, name::String, val) where {T<:SwaggerModel} = set_field!(o, name_map(o)[name], val)
+function set_field!(o::T, name::Symbol, val) where {T<:SwaggerModel}
     validate_field(o, name, val)
-    setfield!(o, name, fieldtype(T,name)(val))
+    FT = fieldtype(T,name)
+
+    if isa(val, FT)
+        return setfield!(o, name, val)
+    else
+        ftval = try
+            convert(FT, val)
+        catch
+            FT(val)
+        end
+        return setfield!(o, name, ftval)
+    end
 end
 
-convert{T<:SwaggerModel}(::Type{T}, json::Dict{String,Any}) = from_json(T, json)
-convert{T<:SwaggerModel}(::Type{T}, v::Void) = T()
+convert(::Type{T}, json::Dict{String,Any}) where {T<:SwaggerModel} = from_json(T, json)
+convert(::Type{T}, v::Nothing) where {T<:SwaggerModel} = T()
 
-show{T<:SwaggerModel}(io::IO, model::T) = print(io, JSON.json(model, 2))
-summary{T<:SwaggerModel}(model::T) = print(io, T)
+show(io::IO, model::T) where {T<:SwaggerModel} = print(io, JSON.json(model, 2))
+summary(model::T) where {T<:SwaggerModel} = print(io, T)

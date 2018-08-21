@@ -1,4 +1,4 @@
-immutable ValidationException <: Exception
+struct ValidationException <: Exception
     reason::String
 end
 
@@ -42,15 +42,12 @@ const VAL_API_PARAM = Dict{Symbol,Function}([
 
 function validate_param(param, operation, rule, value, args...)
     # do not validate missing values
-    ((isa(value, Nullable) && isnull(value)) || (value === nothing)) && return
+    (value === nothing) && return
 
-    # dereference nullables
-    val = isa(value, Nullable) ? get(value) : value
-
-    VAL_API_PARAM[rule](val, args...) && return
+    VAL_API_PARAM[rule](value, args...) && return
 
     msg = string("Invalid value of parameter ", param, " for ", operation, ", ", MSG_INVALID_API_PARAM[rule](args...))
     throw(ValidationException(msg))
 end
 
-validate_field{T<:SwaggerModel}(o::T, name::Symbol, val) = nothing
+validate_field(o::T, name::Symbol, val) where {T<:SwaggerModel} = nothing

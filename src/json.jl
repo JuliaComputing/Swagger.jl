@@ -1,36 +1,50 @@
 # JSONWrapper for Swagger models handles
 # - null fields
 # - field names that are Julia keywords
-immutable JSONWrapper{T<:SwaggerModel} <: Associative{Symbol, Any}
+struct JSONWrapper{T<:SwaggerModel} <: AbstractDict{Symbol, Any}
     wrapped::T
     flds::Vector{String}
 end
 
-JSONWrapper{T<:SwaggerModel}(o::T) = JSONWrapper(o, map(k->field_map(o)[k], filter(n->isset_field(o,n), fieldnames(T))))
+JSONWrapper(o::T) where {T<:SwaggerModel} = JSONWrapper(o, map(k->field_map(o)[k], filter(n->isset_field(o,n), collect(fieldnames(T)))))
 
 getindex(w::JSONWrapper, s::String) = get_field(w.wrapped, s)
 keys(w::JSONWrapper) = w.flds
 length(w::JSONWrapper) = length(w.flds)
-start(w::JSONWrapper) = start(w.flds)
-done(w::JSONWrapper, s) = done(w.flds, s)
-function next(w::JSONWrapper, s)
-    name = w.flds[s]
-    val = get_field(w.wrapped, name)
-    nxt = next(w.flds, s)[2]
-    (name=>val, nxt)
+
+@static if VERSION < v"0.7.0-"
+    start(w::JSONWrapper) = start(w.flds)
+    done(w::JSONWrapper, s) = done(w.flds, s)
+    function next(w::JSONWrapper, s)
+        name = w.flds[s]
+        val = get_field(w.wrapped, name)
+        nxt = next(w.flds, s)[2]
+        (name=>val, nxt)
+    end
+else
+    function iterate(w::JSONWrapper, state...)
+        result = iterate(w.flds, state...)
+        if result === nothing
+            return result
+        else
+            name,nextstate = result
+            val = get_field(w.wrapped, name)
+            return (name=>val, nextstate)
+        end
+    end
 end
 
-lower{T<:SwaggerModel}(o::T) = JSONWrapper(o)
+lower(o::T) where {T<:SwaggerModel} = JSONWrapper(o)
 
 to_json(o) = JSON.json(o)
 
-from_json{T}(::Type{Nullable{T}}, json::Dict{String,Any}) = from_json(T, json)
-from_json{T}(::Type{T}, json::Dict{String,Any}) = from_json(T(), json)
-from_json{T<:Dict}(::Type{T}, json::Dict{String,Any}) = convert(T, json)
-from_json{T<:String}(::Type{T}, j::Dict{String,Any}) = to_json(j)
+from_json(::Type{Union{Nothing,T}}, json::Dict{String,Any}) where {T} = from_json(T, json)
+from_json(::Type{T}, json::Dict{String,Any}) where {T} = from_json(T(), json)
+from_json(::Type{T}, json::Dict{String,Any}) where {T <: Dict} = convert(T, json)
+from_json(::Type{T}, j::Dict{String,Any}) where {T <: String} = to_json(j)
 from_json(::Type{Any}, j::Dict{String,Any}) = j
 
-function from_json{T<:SwaggerModel}(o::T, json::Dict{String,Any})
+function from_json(o::T, json::Dict{String,Any}) where {T <: SwaggerModel}
     nmap = name_map(o)
     for name in intersect(keys(nmap), keys(json))
         from_json(o, nmap[name], json[name])
@@ -38,11 +52,19 @@ function from_json{T<:SwaggerModel}(o::T, json::Dict{String,Any})
     o
 end
 
-function from_json{T<:SwaggerModel}(o::T, name::Symbol, json::Dict{String,Any})
+function from_json(o::T, name::Symbol, json::Dict{String,Any}) where {T <: SwaggerModel}
     ftype = fieldtype(T, name)
     fval = from_json(ftype, json)
     setfield!(o, name, convert(ftype, fval))
     o
 end
-from_json{T}(o::T, name::Symbol, v) = (setfield!(o, name, convert(fieldtype(T, name), v)); o)
-from_json{T}(o::T, name::Symbol, v::Void) = o
+from_json(o::T, name::Symbol, v) where {T} = (setfield!(o, name, convert(fieldtype(T, name), v)); o)
+function from_json(o::T, name::Symbol, v::Vector) where {T}
+    # in Julia we can not support JSON null unless the element type is explicitly set to support it
+    ftype = fieldtype(T, name)
+    vtype = isa(ftype, Union) ? ((ftype.a === Nothing) ? ftype.b : ftype.a) : isa(ftype, Vector) ? ftype : Union{}
+    (Nothing <: eltype(vtype)) || filter!(x->x!==nothing, v)
+    setfield!(o, name, convert(fieldtype(T, name), v))
+    o
+end
+from_json(o::T, name::Symbol, v::Nothing) where {T} = o
