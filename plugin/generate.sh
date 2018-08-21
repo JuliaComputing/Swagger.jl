@@ -2,8 +2,10 @@
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 PKGDIR=`readlink -e ${DIR}/..`
+source ${DIR}/ver.sh
+
 PLUGINDIR=${PKGDIR}/plugin
-SWAGGERDIR=${PKGDIR}/swagger-codegen
+SWAGGERDIR=${PKGDIR}/swagger-codegen-${VER_CODEGEN}
 CLASSPATH=${PLUGINDIR}/target/julia-swagger-codegen-0.0.1.jar:${SWAGGERDIR}/modules/swagger-codegen-cli/target/swagger-codegen-cli.jar:${CLASSPATH}
 #SWAGGERDEBUG="-DdebugModels -DdebugSwagger -DdebugOperations -DdebugSupportingFiles"
 

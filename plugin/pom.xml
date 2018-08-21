@@ -115,7 +115,7 @@
     </dependency>
   </dependencies>
   <properties>
-    <swagger-codegen-version>2.2.2-SNAPSHOT</swagger-codegen-version>
+    <swagger-codegen-version>2.2.3</swagger-codegen-version>
     <swagger-models-version>1.5.9</swagger-models-version>
     <maven-plugin-version>1.0.0</maven-plugin-version>
     <junit-version>4.8.1</junit-version>
