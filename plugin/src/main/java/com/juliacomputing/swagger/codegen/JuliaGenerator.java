@@ -95,7 +95,7 @@ public class JuliaGenerator extends DefaultCodegen implements CodegenConfig {
 
         // Language Specific Primitives.  These types will not trigger imports by the client generator
         languageSpecificPrimitives = new HashSet<String>(
-            Arrays.asList("Int", "Int32", "Int64", "Float32", "Float64", "Vector", "Array", "Bool", "String", "Void")
+            Arrays.asList("Int", "Int32", "Int64", "Float32", "Float64", "Vector", "Array", "Bool", "String", "Nothing")
         );
 
         typeMapping.clear();

@@ -4,13 +4,15 @@
 # It parses each model and keeps a table of the other models it refers to.
 # At the end it walks through the dependency tree and outputs include statements in the correct order.
 
+using Dates
+
 function typedeps(file::String)
     modulename = split(basename(file), ".")[1]
-    contents = readstring(file)
+    contents = read(file, String)
     wrapped = """module $modulename
         $contents
     end"""
-    typedeps(parse(wrapped))
+    typedeps(Meta.parse(wrapped))
 end
 
 function findtype(X::Expr, what::Symbol)
@@ -24,7 +26,7 @@ end
 function isbasetype(DT)
     try
         T = eval(DT)
-        issubtype(T, Number) || issubtype(T, String) || (T === Any) || (T === DateTime)
+        (T <: Number) || (T <: String) || (T === Any) || (T === DateTime)
     catch
         false
     end
@@ -37,7 +39,7 @@ function pushdeps(deps, DT)
         pushdeps(deps, DT.args[2])
         pushdeps(deps, DT.args[3])
     elseif !isbasetype(DT)
-        info("    depends on ", DT)
+        @info("    depends on $DT")
         push!(deps, DT)
     end
 end
@@ -45,7 +47,7 @@ end
 function typedeps(M::Expr)
     mod = findtype(M, :module)
     modblock = findtype(mod, :block)
-    typ = findtype(modblock, :type)
+    typ = findtype(modblock, :struct)
     typedecl = findtype(typ, :<:)
     typeblock = findtype(typ, :block)
 
@@ -54,10 +56,10 @@ function typedeps(M::Expr)
 
     deps = Vector{Symbol}()
     for d in typeblock.args
-        if d.head === :(::)
+        if isa(d, Expr) && (d.head === :(::))
             nullable_type = d.args[2]
-            if nullable_type.head === :curly && nullable_type.args[1] === :Nullable
-                pushdeps(deps, nullable_type.args[2])
+            if (nullable_type.head === :curly) && (nullable_type.args[1] === :Union) && (length(nullable_type.args) === 3) && (:Nothing in nullable_type.args)
+                pushdeps(deps, first(filter(x->(x !== :Nothing) && (x !== :Union), nullable_type.args)))
             end
         end
     end
@@ -68,12 +70,12 @@ srcdir(folder) = joinpath(folder, "src")
 fullsrcpath(folder, file) = joinpath(srcdir(folder), file)
 
 function gentypetree(folder::String)
-    info("reading $folder/src/model_*.jl")
+    @info("reading $folder/src/model_*.jl")
     TT = Dict{Symbol, Vector{Symbol}}()
     TF = Dict{Symbol,String}()
     for file in readdir(srcdir(folder))
         if startswith(file, "model_")
-            info("parsing ", file)
+            @info("parsing $file")
             typename, deps = typedeps(fullsrcpath(folder, file))
             TT[typename] = deps
             TF[typename] = file
@@ -90,7 +92,7 @@ function gen(typename, TT, TF, generated, genstack, io=STDOUT)
         push!(genstack, typename)
         for T in TT[typename]
             if T == typename
-                info("found recursive type use in ", T)
+                @info("found recursive type use in $T")
             else
                 if T in genstack
                     error("circular type references are not supported, found $T and $typename")
