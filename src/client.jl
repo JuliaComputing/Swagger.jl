@@ -63,12 +63,12 @@ struct Client
     root::String
     headers::Dict{String,String}
     get_return_type::Function   # user provided hook to get return type from response data
-    clnthandle::HTTP.Client
+    clntoptions::Dict
 
     function Client(root::String; headers::Dict{String,String}=Dict{String,String}(), get_return_type::Function=(default,data)->default, tlsconfig=nothing)
         endswith(root, '/') && warn("Root URI ($root) terminates with '/'. Ensure that resource paths do not begin with '/'. This is unconventional.")
-        clnthandle = HTTP.Client(; tlsconfig=tlsconfig, status_exception=false, retries=0)
-        new(root, headers, get_return_type, clnthandle)
+        clntoptions = Dict(:tlsconfig=>tlsconfig, :status_exception=>false, :retries=>0)
+        new(root, headers, get_return_type, clntoptions)
     end
 end
 
@@ -144,16 +144,17 @@ function set_param(params::Dict{String,String}, name::String, value::Union{Nothi
 end
 
 function prep_args(ctx::Ctx)
-    kwargs = Dict{Symbol,Any}()
+    kwargs = copy(ctx.client.clntoptions)
     isempty(ctx.file) && (ctx.body === nothing) && isempty(ctx.form) && !("Content-Length" in keys(ctx.header)) && (ctx.header["Content-Length"] = "0")
     isempty(ctx.query) || (kwargs[:query] = ctx.query)
-    isempty(ctx.header) || (kwargs[:headers] = ctx.header)
+    headers = ctx.header
+    body = nothing
     if !isempty(ctx.form)
-        ctx.header["Content-Type"] = "application/x-www-form-urlencoded"
-        kwargs[:body] = HTTP.URIs.escapeuri(ctx.form)
+        headers["Content-Type"] = "application/x-www-form-urlencoded"
+        body = HTTP.URIs.escapeuri(ctx.form)
     end
     if !isempty(ctx.file)
-        body = get!(kwargs, :body, Dict())
+        (body === nothing) && (body = Dict())
         idx = 1
         for (_k,_v) in ctx.file
             body["multi$idx"] = HTTP.Multipart(_k, open(_v))
@@ -163,16 +164,19 @@ function prep_args(ctx::Ctx)
     if ctx.body !== nothing
         (isempty(ctx.form) && isempty(ctx.file)) || throw(SwaggerException("Can not send both form-encoded data and a request body"))
         if is_json_mime(get(ctx.header, "Content-Type", "application/json"))
-            kwargs[:body] = to_json(ctx.body)
+            body = to_json(ctx.body)
         elseif ("application/x-www-form-urlencoded" == ctx.header["Content-Type"]) && isa(ctx.body, Dict)
-            kwargs[:body] = HTTP.URIs.escapeuri(ctx.body)
+            body = HTTP.URIs.escapeuri(ctx.body)
+        elseif isa(ctx.boody, SwaggerModel) && isempty(get(ctx.header, "Content-Type", ""))
+            headers["Content-Type"] = "application/json"
+            body = to_json(ctx.body)
         else
-            kwargs[:body] = ctx.body
+            body = ctx.body
         end
     end
     # set the timeout
     kwargs[:readtimeout] = ctx.timeout
-    return kwargs
+    return body, kwargs
 end
 
 response(::Type{Nothing}, resp::HTTP.Response) = nothing::Nothing
@@ -199,8 +203,12 @@ function exec(ctx::Ctx)
     end
 
     # TODO: use auth_settings for authentication
-    kwargs = prep_args(ctx)
-    resp = HTTP.request(ctx.client.clnthandle, uppercase(ctx.method), HTTP.URIs.URI(resource_path); kwargs...)
+    body, kwargs = prep_args(ctx)
+    if body !== nothing
+        resp = HTTP.request(uppercase(ctx.method), HTTP.URIs.URI(resource_path), ctx.header, body; kwargs...)
+    else
+        resp = HTTP.request(uppercase(ctx.method), HTTP.URIs.URI(resource_path), ctx.header; kwargs...)
+    end
     (200 <= resp.status <= 206) || throw(ApiException(resp))
 
     response(ctx.client.get_return_type(ctx.return_type, resp), resp)

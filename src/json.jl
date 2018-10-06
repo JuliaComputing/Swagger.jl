@@ -12,25 +12,14 @@ getindex(w::JSONWrapper, s::String) = get_field(w.wrapped, s)
 keys(w::JSONWrapper) = w.flds
 length(w::JSONWrapper) = length(w.flds)
 
-@static if VERSION < v"0.7.0-"
-    start(w::JSONWrapper) = start(w.flds)
-    done(w::JSONWrapper, s) = done(w.flds, s)
-    function next(w::JSONWrapper, s)
-        name = w.flds[s]
+function iterate(w::JSONWrapper, state...)
+    result = iterate(w.flds, state...)
+    if result === nothing
+        return result
+    else
+        name,nextstate = result
         val = get_field(w.wrapped, name)
-        nxt = next(w.flds, s)[2]
-        (name=>val, nxt)
-    end
-else
-    function iterate(w::JSONWrapper, state...)
-        result = iterate(w.flds, state...)
-        if result === nothing
-            return result
-        else
-            name,nextstate = result
-            val = get_field(w.wrapped, name)
-            return (name=>val, nextstate)
-        end
+        return (name=>val, nextstate)
     end
 end
 
