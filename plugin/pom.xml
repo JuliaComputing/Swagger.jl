@@ -4,7 +4,7 @@
   <groupId>com.juliacomputing.swagger.codegen</groupId>
   <artifactId>julia-swagger-codegen</artifactId>
   <packaging>jar</packaging>
-  <version>0.0.1</version>
+  <version>0.0.2</version>
   <name>julia-swagger-codegen</name>
   <url>http://maven.apache.org</url>
   <repositories>
@@ -41,8 +41,8 @@
     </dependency>
   </dependencies>
   <properties>
-    <swagger-codegen-version>2.2.3</swagger-codegen-version>
-    <swagger-models-version>1.5.9</swagger-models-version>
+    <swagger-codegen-version>2.4.4</swagger-codegen-version>
+    <swagger-models-version>1.5.22</swagger-models-version>
     <maven-plugin-version>1.0.0</maven-plugin-version>
     <junit-version>4.8.1</junit-version>
     <maven.compiler.source>1.6</maven.compiler.source>
