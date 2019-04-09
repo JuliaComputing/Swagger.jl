@@ -16,10 +16,10 @@ To build the project, run this:
 plugin/build.sh
 ```
 
-A single jar file (julia-swagger-codegen-0.0.1.jar) will be produced in `plugin/target`.  You can now use that with codegen:
+A single jar file (julia-swagger-codegen-0.0.2.jar) will be produced in `plugin/target`.  You can now use that with codegen:
 
 ```
-java -cp /path/to/swagger-codegen-cli.jar:/path/to/julia-swagger-codegen-0.0.1.jar io.swagger.codegen.Codegen -l julia -i /path/to/swagger.yaml -o ./test -c config.json
+java -cp /path/to/swagger-codegen-cli.jar:/path/to/julia-swagger-codegen-0.0.2.jar io.swagger.codegen.Codegen -l julia -i /path/to/swagger.yaml -o ./test -c config.json
 ```
 
 The configuration file (`config.json`) can have the following options:

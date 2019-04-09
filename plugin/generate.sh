@@ -6,7 +6,7 @@ source ${DIR}/ver.sh
 
 PLUGINDIR=${PKGDIR}/plugin
 SWAGGERDIR=${PKGDIR}/swagger-codegen-${VER_CODEGEN}
-CLASSPATH=${PLUGINDIR}/target/julia-swagger-codegen-0.0.1.jar:${SWAGGERDIR}/modules/swagger-codegen-cli/target/swagger-codegen-cli.jar:${CLASSPATH}
+CLASSPATH=${PLUGINDIR}/target/julia-swagger-codegen-0.0.2.jar:${SWAGGERDIR}/modules/swagger-codegen-cli/target/swagger-codegen-cli.jar:${CLASSPATH}
 #SWAGGERDEBUG="-DdebugModels -DdebugSwagger -DdebugOperations -DdebugSupportingFiles"
 
 echo "java ${SWAGGERDEBUG} -cp ${CLASSPATH} io.swagger.codegen.SwaggerCodegen generate -l julia $*"
