@@ -327,9 +327,16 @@ public class JuliaGenerator extends DefaultCodegen implements CodegenConfig {
             if(languageSpecificPrimitives.contains(type))
                 return toModelName(type);
         }
-        else
+        else {
             type = swaggerType;
-        return toModelName(type);
+        }
+
+        if (type == null) {
+            return "Object";
+        }
+        else {
+            return toModelName(type);
+        }
     }
 
     /**
