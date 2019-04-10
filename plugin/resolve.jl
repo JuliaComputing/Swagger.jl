@@ -47,23 +47,35 @@ end
 function typedeps(M::Expr)
     mod = findtype(M, :module)
     modblock = findtype(mod, :block)
-    typ = findtype(modblock, :struct)
-    typedecl = findtype(typ, :<:)
-    typeblock = findtype(typ, :block)
-
-    typename = typedecl.args[1]
-    @assert typedecl.args[2] === :SwaggerModel
-
     deps = Vector{Symbol}()
-    for d in typeblock.args
-        if isa(d, Expr) && (d.head === :(::))
-            nullable_type = d.args[2]
-            if (nullable_type.head === :curly) && (nullable_type.args[1] === :Union) && (length(nullable_type.args) === 3) && (:Nothing in nullable_type.args)
-                pushdeps(deps, first(filter(x->(x !== :Nothing) && (x !== :Union), nullable_type.args)))
+
+    try
+        # attempt to parse as a regular struct
+        typ = findtype(modblock, :struct)
+        typedecl = findtype(typ, :<:)
+        typeblock = findtype(typ, :block)
+
+        typename = typedecl.args[1]
+        @assert typedecl.args[2] === :SwaggerModel
+
+        for d in typeblock.args
+            if isa(d, Expr) && (d.head === :(::))
+                nullable_type = d.args[2]
+                if (nullable_type.head === :curly) && (nullable_type.args[1] === :Union) && (length(nullable_type.args) === 3) && (:Nothing in nullable_type.args)
+                    pushdeps(deps, first(filter(x->(x !== :Nothing) && (x !== :Union), nullable_type.args)))
+                end
             end
         end
+        (typename, deps)
+    catch
+        # else it might be an alias
+        const_decl = findtype(modblock, :const)
+        const_args = const_decl.args[1]
+        @assert const_args.head == :(=)
+        typename = const_args.args[1]
+        pushdeps(deps, const_args.args[2])
+        (typename, deps)
     end
-    (typename, deps)
 end
 
 srcdir(folder) = joinpath(folder, "src")
