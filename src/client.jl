@@ -235,8 +235,8 @@ function get_field(o::T, path...) where {T<:SwaggerModel}
     (length(rempath) == 0) && (return val)
     get_field(val, rempath...)
 end
-get_field(o::T, name::String) where {T<:SwaggerModel} = get_field(o, name_map(o)[name])
-get_field(o::T, name::Symbol) where {T<:SwaggerModel} = getfield(o, name)
+get_field(o::T, spec_field_name::String) where {T<:SwaggerModel} = get_field(o, name_map(o)[spec_field_name])
+get_field(o::T, type_field_name::Symbol) where {T<:SwaggerModel} = getfield(o, type_field_name)
 
 function isset_field(o::T, path...) where {T<:SwaggerModel}
     ret = isset_field(o, path[1])
@@ -259,23 +259,23 @@ function isset_field(o::T, path...) where {T<:SwaggerModel}
     (length(rempath) == 0) && (return ret)
     isset_field(val, rempath...)
 end
-isset_field(o::T, name::String) where {T<:SwaggerModel} = isset_field(o, name_map(o)[name])
-isset_field(o::T, name::Symbol) where {T<:SwaggerModel} = (getfield(o, name) !== nothing)
+isset_field(o::T, spec_field_name::String) where {T<:SwaggerModel} = isset_field(o, name_map(o)[spec_field_name])
+isset_field(o::T, type_field_name::Symbol) where {T<:SwaggerModel} = (getfield(o, type_field_name) !== nothing)
 
-set_field!(o::T, name::String, val) where {T<:SwaggerModel} = set_field!(o, name_map(o)[name], val)
-function set_field!(o::T, name::Symbol, val) where {T<:SwaggerModel}
-    validate_field(o, name, val)
-    FT = fieldtype(T,name)
+set_field!(o::T, spec_field_name::String, val) where {T<:SwaggerModel} = set_field!(o, name_map(o)[spec_field_name], val)
+function set_field!(o::T, type_field_name::Symbol, val) where {T<:SwaggerModel}
+    validate_field(o, type_field_name, val)
+    FT = field_type(T, type_field_name)
 
     if isa(val, FT)
-        return setfield!(o, name, val)
+        return setfield!(o, type_field_name, val)
     else
         ftval = try
             convert(FT, val)
         catch
             FT(val)
         end
-        return setfield!(o, name, ftval)
+        return setfield!(o, type_field_name, ftval)
     end
 end
 
@@ -284,3 +284,6 @@ convert(::Type{T}, v::Nothing) where {T<:SwaggerModel} = T()
 
 show(io::IO, model::T) where {T<:SwaggerModel} = print(io, JSON.json(model, 2))
 summary(model::T) where {T<:SwaggerModel} = print(io, T)
+
+field_type(model::T, field) where {T<:SwaggerModel} = field_type(T, field)
+field_type(::Type{T}, spec_field_name::String) where {T<:SwaggerModel} = field_type(T, name_map(T)[spec_field_name])

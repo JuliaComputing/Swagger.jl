@@ -8,7 +8,7 @@ const {{classname}} = {{dataType}}
 {{/isAlias}}{{^isAlias}}
 mutable struct {{classname}} <: SwaggerModel
 {{#allVars}}
-    {{name}}::Union{ Nothing, {{datatype}} } # {{baseName}}
+    {{name}}::Union{ Nothing, {{datatype}} } # spec type: {{baseName}}
 {{/allVars}}
 
     function {{classname}}(;{{#allVars}}{{name}}={{#defaultValue}}{{{defaultValue}}}{{/defaultValue}}{{^defaultValue}}nothing{{/defaultValue}}{{#hasMore}}, {{/hasMore}}{{/allVars}})
@@ -20,11 +20,13 @@ mutable struct {{classname}} <: SwaggerModel
     end
 end # type {{classname}}
 
-const _name_map_{{classname}} = Dict{String,Symbol}([{{#allVars}}"{{baseName}}"=>:{{name}}{{#hasMore}}, {{/hasMore}}{{/allVars}}])
-const _field_map_{{classname}} = Dict{Symbol,String}([{{#allVars}}:{{name}}=>"{{baseName}}"{{#hasMore}}, {{/hasMore}}{{/allVars}}])
+const _name_map_{{classname}} = Dict{String,Symbol}({{#allVars}}"{{baseName}}"=>:{{name}}{{#hasMore}}, {{/hasMore}}{{/allVars}})
+const _field_map_{{classname}} = Dict{Symbol,String}({{#allVars}}:{{name}}=>"{{baseName}}"{{#hasMore}}, {{/hasMore}}{{/allVars}})
+const _field_types_{{classname}} = Dict{Symbol,String}({{#allVars}}:{{name}}=>"{{datatype}}"{{#hasMore}}, {{/hasMore}}{{/allVars}})
 Swagger.name_map(::Type{ {{classname}} }) = _name_map_{{classname}}
 Swagger.field_map(::Type{ {{classname}} }) = _field_map_{{classname}}
 {{#allVars}}
+Swagger.field_type(::Type{ {{classname}} }, type_field_name::Symbol) = Union{Nothing,eval(Meta.parse(_field_types_{{classname}}[type_field_name]))}
 {{#isEnum}}
 
 const _allowed_{{classname}}_{{name}} = [{{#allowableValues}}{{#values}}"{{{this}}}"{{^-last}}, {{/-last}}{{/values}}{{/allowableValues}}]
