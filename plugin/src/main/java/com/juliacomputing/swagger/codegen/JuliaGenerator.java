@@ -82,10 +82,8 @@ public class JuliaGenerator extends DefaultCodegen implements CodegenConfig {
         reservedWords = new HashSet<String> (
             Arrays.asList(
                 "if", "else", "elseif", "while", "for", "begin", "end", "quote",
-                "try", "catch", "return", "local", "abstract", "function", "macro",
-                "ccall", "finally", "typealias", "break", "continue", "type",
-                "global", "module", "using", "import", "export", "const", "let",
-                "bitstype", "do", "baremodule", "importall", "immutable",
+                "try", "catch", "return", "local", "function", "macro", "ccall", "finally", "break", "continue",
+                "global", "module", "using", "import", "export", "const", "let", "do", "baremodule",
                 "Type", "Enum", "Any", "DataType", "Base"
             )
         );
