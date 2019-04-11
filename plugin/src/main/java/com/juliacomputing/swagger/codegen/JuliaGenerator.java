@@ -137,6 +137,7 @@ public class JuliaGenerator extends DefaultCodegen implements CodegenConfig {
         additionalProperties.put(CodegenConstants.PACKAGE_NAME, packageName);
 
         supportingFiles.add(new SupportingFile("client.mustache", "src", packageName + ".jl"));
+        supportingFiles.add(new SupportingFile("modelincludes.mustache", "src", "modelincludes.jl"));
     }
 
     /**
