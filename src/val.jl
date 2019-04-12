@@ -50,4 +50,4 @@ function validate_param(param, operation, rule, value, args...)
     throw(ValidationException(msg))
 end
 
-validate_field(o::T, name::Symbol, val) where {T<:SwaggerModel} = nothing
+validate_property(::Type{T}, name::Symbol, val) where {T<:SwaggerModel} = nothing

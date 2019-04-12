@@ -7,8 +7,8 @@ using Random
 using Dates
 using HTTP
 using Swagger
-import Swagger: set_field!, get_field, isset_field, validate_field, SwaggerApi, SwaggerModel
-import Base: convert
+import Swagger: field_name, property_type, hasproperty, validate_property, SwaggerApi, SwaggerModel
+import Base: convert, propertynames
 
 include("modelincludes.jl")
 {{#apiInfo}}{{#apis}}
@@ -24,6 +24,6 @@ export convert{{#model}}, {{classname}}{{/model}}
 export convert{{#apis}}, {{classname}}{{/apis}}
 {{/apiInfo}}
 
-export check_required, set_field!, get_field, isset_field, convert
+export check_required, field_name, property_type, hasproperty, propertynames, validate_property, convert
 
 end

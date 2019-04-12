@@ -5,7 +5,7 @@ using JSON
 using MbedTLS
 using Dates
 
-import Base: convert, show, summary, getindex, keys, length
+import Base: convert, show, summary, getindex, keys, length, getproperty, setproperty!, propertynames
 import JSON: lower
 import Base: iterate
 
