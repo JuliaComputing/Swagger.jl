@@ -27,7 +27,7 @@ const MSG_INVALID_API_PARAM = Dict{Symbol,Function}([
     :minLength => (len)->string("length must be greater than or equal to ", len),
     :maxItems => (val)->string("number of items must be less than or equal to ", val),
     :minItems => (val)->string("number of items must be greater than or equal to ", val),
-    :enum => (lst)->string("value is not from the allowed values")
+    :enum => (lst)->string("value is not from the allowed values", lst)
 ])
 
 const VAL_API_PARAM = Dict{Symbol,Function}([
@@ -46,8 +46,8 @@ function validate_param(param, operation, rule, value, args...)
 
     VAL_API_PARAM[rule](value, args...) && return
 
-    msg = string("Invalid value of parameter ", param, " for ", operation, ", ", MSG_INVALID_API_PARAM[rule](args...))
+    msg = string("Invalid value ($value) of parameter ", param, " for ", operation, ", ", MSG_INVALID_API_PARAM[rule](args...))
     throw(ValidationException(msg))
 end
 
-validate_field(o::T, name::Symbol, val) where {T<:SwaggerModel} = nothing
+validate_property(::Type{T}, name::Symbol, val) where {T<:SwaggerModel} = nothing

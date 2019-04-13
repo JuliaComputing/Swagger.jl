@@ -214,12 +214,30 @@ function exec(ctx::Ctx)
     response(ctx.client.get_return_type(ctx.return_type, resp), resp)
 end
 
-name_map(o::T) where {T<:SwaggerModel} = name_map(T)
-field_map(o::T) where {T<:SwaggerModel} = field_map(T)
+property_type(::Type{T}, name::Symbol) where {T<:SwaggerModel} = error("invalid type $T")
+field_name(::Type{T}, name::Symbol) where {T<:SwaggerModel} = error("invalid type $T")
 
-# TODO: will be good to have a comprehensive selector syntax
-function get_field(o::T, path...) where {T<:SwaggerModel}
-    val = get_field(o, path[1])
+getproperty(o::T, name::Symbol) where {T<:SwaggerModel} = getfield(o, field_name(T,name))
+hasproperty(o::T, name::Symbol) where {T<:SwaggerModel} = ((name in propertynames(T)) && (getproperty(o, name) !== nothing))
+function setproperty!(o::T, name::Symbol, val) where {T<:SwaggerModel}
+    validate_property(T, name, val)
+    fieldtype = property_type(T, name)
+    fieldname = field_name(T, name)
+
+    if isa(val, fieldtype)
+        return setfield!(o, fieldname, val)
+    else
+        ftval = try
+            convert(fieldtype, val)
+        catch
+            fieldtype(val)
+        end
+        return setfield!(o, fieldname, ftval)
+    end
+end
+
+function getpropertyat(o::T, path...) where {T<:SwaggerModel}
+    val = getproperty(o, Symbol(path[1]))
     rempath = path[2:end]
     (length(rempath) == 0) && (return val)
 
@@ -228,22 +246,21 @@ function get_field(o::T, path...) where {T<:SwaggerModel}
             val = val[rempath[1]]
             rempath = rempath[2:end]
         else
-            return [get_field(item, rempath...) for item in val]
+            return [getpropertyat(item, rempath...) for item in val]
         end
     end
 
     (length(rempath) == 0) && (return val)
-    get_field(val, rempath...)
+    getpropertyat(val, rempath...)
 end
-get_field(o::T, name::String) where {T<:SwaggerModel} = get_field(o, name_map(o)[name])
-get_field(o::T, name::Symbol) where {T<:SwaggerModel} = getfield(o, name)
 
-function isset_field(o::T, path...) where {T<:SwaggerModel}
-    ret = isset_field(o, path[1])
+function haspropertyat(o::T, path...) where {T<:SwaggerModel}
+    p1 = Symbol(path[1])
+    ret = hasproperty(o, p1)
     rempath = path[2:end]
     (length(rempath) == 0) && (return ret)
 
-    val = get_field(o, path[1])
+    val = getproperty(o, p1)
     if isa(val, Vector)
         if isa(rempath[1], Integer)
             ret = length(val) >= rempath[1]
@@ -252,31 +269,12 @@ function isset_field(o::T, path...) where {T<:SwaggerModel}
                 rempath = rempath[2:end]
             end
         else
-            return [isset_field(item, rempath...) for item in val]
+            return [haspropertyat(item, rempath...) for item in val]
         end
     end
 
     (length(rempath) == 0) && (return ret)
-    isset_field(val, rempath...)
-end
-isset_field(o::T, name::String) where {T<:SwaggerModel} = isset_field(o, name_map(o)[name])
-isset_field(o::T, name::Symbol) where {T<:SwaggerModel} = (getfield(o, name) !== nothing)
-
-set_field!(o::T, name::String, val) where {T<:SwaggerModel} = set_field!(o, name_map(o)[name], val)
-function set_field!(o::T, name::Symbol, val) where {T<:SwaggerModel}
-    validate_field(o, name, val)
-    FT = fieldtype(T,name)
-
-    if isa(val, FT)
-        return setfield!(o, name, val)
-    else
-        ftval = try
-            convert(FT, val)
-        catch
-            FT(val)
-        end
-        return setfield!(o, name, ftval)
-    end
+    getpropertyat(val, rempath...)
 end
 
 convert(::Type{T}, json::Dict{String,Any}) where {T<:SwaggerModel} = from_json(T, json)

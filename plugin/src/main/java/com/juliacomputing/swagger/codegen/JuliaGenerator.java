@@ -82,10 +82,8 @@ public class JuliaGenerator extends DefaultCodegen implements CodegenConfig {
         reservedWords = new HashSet<String> (
             Arrays.asList(
                 "if", "else", "elseif", "while", "for", "begin", "end", "quote",
-                "try", "catch", "return", "local", "abstract", "function", "macro",
-                "ccall", "finally", "typealias", "break", "continue", "type",
-                "global", "module", "using", "import", "export", "const", "let",
-                "bitstype", "do", "baremodule", "importall", "immutable",
+                "try", "catch", "return", "local", "function", "macro", "ccall", "finally", "break", "continue",
+                "global", "module", "using", "import", "export", "const", "let", "do", "baremodule",
                 "Type", "Enum", "Any", "DataType", "Base"
             )
         );
@@ -95,7 +93,7 @@ public class JuliaGenerator extends DefaultCodegen implements CodegenConfig {
 
         // Language Specific Primitives.  These types will not trigger imports by the client generator
         languageSpecificPrimitives = new HashSet<String>(
-            Arrays.asList("Int", "Int32", "Int64", "Float32", "Float64", "Vector", "Array", "Bool", "String", "Nothing")
+            Arrays.asList("Int128", "Int64", "Int32", "Int16", "Int8", "UInt128", "UInt64", "UInt32", "UInt16", "UInt8", "Float64", "Float32", "Float16", "Char", "Vector", "Array", "Bool", "String", "Integer", "Nothing")
         );
 
         typeMapping.clear();
@@ -139,6 +137,7 @@ public class JuliaGenerator extends DefaultCodegen implements CodegenConfig {
         additionalProperties.put(CodegenConstants.PACKAGE_NAME, packageName);
 
         supportingFiles.add(new SupportingFile("client.mustache", "src", packageName + ".jl"));
+        supportingFiles.add(new SupportingFile("modelincludes.mustache", "src", "modelincludes.jl"));
     }
 
     /**
@@ -150,7 +149,7 @@ public class JuliaGenerator extends DefaultCodegen implements CodegenConfig {
     @Override
     public String escapeReservedWord(String name) {
         if (reservedWords.contains(name)) {
-            return "_" + name;  // add an underscore to the name
+            return "__" + name + "__";  // add underscores to reserved words, and also to obscure it to lessen chances of clashing with any other names
         } else {
             return name;
         }
@@ -175,7 +174,7 @@ public class JuliaGenerator extends DefaultCodegen implements CodegenConfig {
     public String toModelFilename(String name) {
         name = sanitizeName(name);
         name = name.replaceAll("$", "");
-        return "model_" + dropDots(name);
+        return "model_" + camelize(dropDots(name));
     }
 
     private static String dropDots(String str) {
@@ -287,7 +286,9 @@ public class JuliaGenerator extends DefaultCodegen implements CodegenConfig {
 
         // camelize the model name
         // phone_number => PhoneNumber
-        return camelize(name);
+        name = camelize(name);
+
+        return name;
     }
 
     /**

@@ -29,7 +29,7 @@ function test(uri)
 
     println("   - getPetById")
     pet10 = getPetById(api, 10)
-    @test get_field(pet10, "id") == 10
+    @test pet10.id == 10
 
     # skip test, has been failing on the test server (some operations on the server are probably dummy)
     #println("   - findPetsByTags")
@@ -48,7 +48,7 @@ function test(uri)
     @test isa(pets, Vector{Pet})
     println("       - got $(length(pets)) pets")
     for p in pets
-        @test get_field(p, "status") in unsold
+        @test p.status in unsold
     end
 
     println("   - deletePet")

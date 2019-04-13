@@ -4,30 +4,36 @@
 # Do not modify this file directly. Modify the swagger specification instead.
 
 {{#isAlias}}
-const {{classname}} = {{dataType}}
+if !isdefined(@__MODULE__, :{{classname}})
+    const {{classname}} = {{dataType}}
+else
+    @warn("Skipping redefinition of {{classname}} to {{dataType}}")
+end
 {{/isAlias}}{{^isAlias}}
 mutable struct {{classname}} <: SwaggerModel
 {{#allVars}}
-    {{name}}::Union{ Nothing, {{datatype}} } # {{baseName}}
+    {{name}}::Any # spec type: Union{ Nothing, {{datatype}} } # spec name: {{baseName}}
 {{/allVars}}
 
     function {{classname}}(;{{#allVars}}{{name}}={{#defaultValue}}{{{defaultValue}}}{{/defaultValue}}{{^defaultValue}}nothing{{/defaultValue}}{{#hasMore}}, {{/hasMore}}{{/allVars}})
         o = new()
         {{#allVars}}
-        set_field!(o, :{{name}}, {{name}})
+        validate_property({{classname}}, Symbol("{{baseName}}"), {{name}})
+        setfield!(o, Symbol("{{name}}"), {{name}})
         {{/allVars}}
         o
     end
 end # type {{classname}}
 
-const _name_map_{{classname}} = Dict{String,Symbol}([{{#allVars}}"{{baseName}}"=>:{{name}}{{#hasMore}}, {{/hasMore}}{{/allVars}}])
-const _field_map_{{classname}} = Dict{Symbol,String}([{{#allVars}}:{{name}}=>"{{baseName}}"{{#hasMore}}, {{/hasMore}}{{/allVars}}])
-Swagger.name_map(::Type{ {{classname}} }) = _name_map_{{classname}}
-Swagger.field_map(::Type{ {{classname}} }) = _field_map_{{classname}}
+const _property_map_{{classname}} = Dict{Symbol,Symbol}({{#allVars}}Symbol("{{baseName}}")=>Symbol("{{name}}"){{#hasMore}}, {{/hasMore}}{{/allVars}})
+const _property_types_{{classname}} = Dict{Symbol,String}({{#allVars}}Symbol("{{baseName}}")=>"{{datatype}}"{{#hasMore}}, {{/hasMore}}{{/allVars}})
+Base.propertynames(::Type{ {{classname}} }) = collect(keys(_property_map_{{classname}}))
+Swagger.property_type(::Type{ {{classname}} }, name::Symbol) = Union{Nothing,eval(Meta.parse(_property_types_{{classname}}[name]))}
+Swagger.field_name(::Type{ {{classname}} }, property_name::Symbol) =  _property_map_{{classname}}[property_name]
 {{#allVars}}
 {{#isEnum}}
 
-const _allowed_{{classname}}_{{name}} = [{{#allowableValues}}{{#values}}"{{{this}}}"{{^-last}}, {{/-last}}{{/values}}{{/allowableValues}}]
+const _allowed_{{classname}}_{{baseName}} = [{{#allowableValues}}{{#values}}"{{{this}}}"{{^-last}}, {{/-last}}{{/values}}{{/allowableValues}}]
 {{/isEnum}}
 {{/allVars}}
 
@@ -35,23 +41,23 @@ function check_required(o::{{classname}})
 {{#allVars}}
 {{^isEnum}}
 {{#required}}
-    (o.{{name}} === nothing) && (return false)
+    (getproperty(o, Symbol("{{baseName}}")) === nothing) && (return false)
 {{/required}}
 {{/isEnum}}
 {{/allVars}}
     true
 end
 
-function validate_field(o::{{classname}}, name::Symbol, val)
+function validate_property(::Type{ {{classname}} }, name::Symbol, val)
 {{#allVars}}
 {{#isEnum}}
-    if name === :{{name}}
-        Swagger.validate_param(name, "{{classname}}", :enum, val, _allowed_{{classname}}_{{name}})
+    if name === Symbol("{{baseName}}")
+        Swagger.validate_param(name, "{{classname}}", :enum, val, _allowed_{{classname}}_{{baseName}})
     end
 {{/isEnum}}
 {{^isEnum}}
 {{#hasValidation}}
-    if name === :{{name}}
+    if name === Symbol("{{baseName}}")
 {{#maxLength}}
         Swagger.validate_param(name, "{{classname}}", :maxLength, val, {{maxLength}})
 {{/maxLength}}
