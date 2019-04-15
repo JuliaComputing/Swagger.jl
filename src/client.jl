@@ -67,7 +67,8 @@ struct Client
 
     function Client(root::String; headers::Dict{String,String}=Dict{String,String}(), get_return_type::Function=(default,data)->default, sslconfig=nothing, require_ssl_verification=true)
         endswith(root, '/') && warn("Root URI ($root) terminates with '/'. Ensure that resource paths do not begin with '/'. This is unconventional.")
-        clntoptions = Dict(:sslconfig=>sslconfig, :status_exception=>false, :retries=>0, :require_ssl_verification=>require_ssl_verification)
+        clntoptions = Dict{Symbol,Any}(:status_exception=>false, :retries=>0, :require_ssl_verification=>require_ssl_verification)
+        (sslconfig === nothing) || (clntoptions[:sslconfig] = sslconfig)
         new(root, headers, get_return_type, clntoptions)
     end
 end
