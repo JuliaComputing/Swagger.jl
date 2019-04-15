@@ -275,7 +275,7 @@ function haspropertyat(o::T, path...) where {T<:SwaggerModel}
     end
 
     (length(rempath) == 0) && (return ret)
-    getpropertyat(val, rempath...)
+    haspropertyat(val, rempath...)
 end
 
 convert(::Type{T}, json::Dict{String,Any}) where {T<:SwaggerModel} = from_json(T, json)
