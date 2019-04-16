@@ -20,9 +20,11 @@ To build the project, run this:
 plugin/build.sh
 ```
 
-A single jar file (julia-swagger-codegen-0.0.1.jar) will be produced in `plugin/target`.
+A single jar file (julia-swagger-codegen-0.0.2.jar) will be produced in `plugin/target`.
 
 You can now use that for codegen.
+
+Note: problems have been reported while building with JDK 9 on MacOS likely because of [this issue](https://bugs.eclipse.org/bugs/show_bug.cgi?id=534460)
 
 ### Code Generation:
 
