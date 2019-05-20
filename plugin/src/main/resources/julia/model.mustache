@@ -26,7 +26,7 @@ end # type {{classname}}
 const _property_map_{{classname}} = Dict{Symbol,Symbol}({{#allVars}}Symbol("{{baseName}}")=>Symbol("{{name}}"){{#hasMore}}, {{/hasMore}}{{/allVars}})
 const _property_types_{{classname}} = Dict{Symbol,String}({{#allVars}}Symbol("{{baseName}}")=>"{{datatype}}"{{#hasMore}}, {{/hasMore}}{{/allVars}})
 Base.propertynames(::Type{ {{classname}} }) = collect(keys(_property_map_{{classname}}))
-Swagger.property_type(::Type{ {{classname}} }, name::Symbol) = Union{Nothing,eval(Meta.parse(_property_types_{{classname}}[name]))}
+Swagger.property_type(::Type{ {{classname}} }, name::Symbol) = Union{Nothing,eval(Base.Meta.parse(_property_types_{{classname}}[name]))}
 Swagger.field_name(::Type{ {{classname}} }, property_name::Symbol) =  _property_map_{{classname}}[property_name]
 {{#allVars}}
 {{#isEnum}}
