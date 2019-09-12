@@ -2,6 +2,9 @@
 language: julia
 os:
   - linux
+jdk:
+  - openjdk11
+  - oraclejdk11
 cache:
   directories:
     - "$HOME/.m2/repository"
@@ -13,14 +16,21 @@ before_install:
 julia:
   - 1.0
   - 1.1
+  - 1.2
+  - 1.3
   - nightly
+matrix:
+  allow_failures:
+  - julia: nightly
 notifications:
   email: false
 # uncomment the following lines to override the default test script
 script:
   - if [[ -a .git/shallow ]]; then git fetch --unshallow; fi
-  - julia -e 'using Pkg; Pkg.clone(pwd()); Pkg.build("Swagger")'
+  - julia --project -e 'using Pkg; Pkg.build()'
   - ./plugin/build.sh
+  - export CLASSPATH=`cat ./plugin/classpath`
+  - echo $CLASSPATH
   - julia -e 'using Pkg; Pkg.test("Swagger"; coverage=true)'
 after_success:
   # push coverage results to Coveralls
