@@ -7,46 +7,28 @@
   <version>0.0.2</version>
   <name>julia-swagger-codegen</name>
   <url>http://maven.apache.org</url>
-  <repositories>
-   <repository>
-       <!-- DO NOT set id to "local" because it is reserved by Maven -->
-       <id>lib</id>
-       <url>file://${project.basedir}/lib</url>
-   </repository>
-  </repositories>
   <dependencies>
+    <!-- https://mvnrepository.com/artifact/io.swagger/swagger-models -->
     <dependency>
-      <groupId>junit</groupId>
-      <artifactId>junit</artifactId>
-      <version>3.8.1</version>
-      <scope>test</scope>
+        <groupId>io.swagger</groupId>
+        <artifactId>swagger-models</artifactId>
+        <version>1.5.22</version>
     </dependency>
-    <!-- https://mvnrepository.com/artifact/org.apache.commons/commons-lang3 -->
+    <!-- https://mvnrepository.com/artifact/io.swagger/swagger-codegen -->
     <dependency>
-        <groupId>org.apache.commons</groupId>
-        <artifactId>commons-lang3</artifactId>
-        <version>3.0</version>
+        <groupId>io.swagger</groupId>
+        <artifactId>swagger-codegen</artifactId>
+        <version>2.4.4</version>
     </dependency>
+    <!-- https://mvnrepository.com/artifact/io.swagger/swagger-codegen-cli -->
     <dependency>
-      <groupId>io.swagger</groupId>
-      <artifactId>swagger-codegen</artifactId>
-      <version>${swagger-codegen-version}</version>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>io.swagger</groupId>
-      <artifactId>swagger-models</artifactId>
-      <version>${swagger-models-version}</version>
-      <scope>provided</scope>
+        <groupId>io.swagger</groupId>
+        <artifactId>swagger-codegen-cli</artifactId>
+        <version>2.4.4</version>
     </dependency>
   </dependencies>
   <properties>
-    <swagger-codegen-version>2.4.4</swagger-codegen-version>
-    <swagger-models-version>1.5.22</swagger-models-version>
-    <maven-plugin-version>1.0.0</maven-plugin-version>
-    <junit-version>4.8.1</junit-version>
     <maven.compiler.source>1.6</maven.compiler.source>
     <maven.compiler.target>1.6</maven.compiler.target>
   </properties>
-
 </project>
