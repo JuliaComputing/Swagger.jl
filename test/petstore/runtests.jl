@@ -4,7 +4,7 @@ include("test_UserApi.jl")
 include("test_StoreApi.jl")
 include("test_PetApi.jl")
 
-const server = "http://petstore.swagger.io/v2"
+const server = "http://127.0.0.1/v2"
 TestUserApi.test(server)
 TestStoreApi.test(server)
 TestPetApi.test(server)
