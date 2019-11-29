@@ -1,6 +1,7 @@
 # Documentation: http://docs.travis-ci.com/user/languages/julia/
 language: julia
 os:
+  - osx
   - linux
 services:
   - docker
@@ -12,8 +13,8 @@ cache:
     - "$HOME/.m2/repository"
     - "$HOME/apache-maven-3.5.0"
 before_install:
-  - docker pull swaggerapi/petstore:latest
-  - docker run -d -e SWAGGER_HOST=http://127.0.0.1 -e SWAGGER_BASE_PATH=/v2 -p 80:8080 swaggerapi/petstore:latest
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then docker pull swaggerapi/petstore:latest; fi
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then docker run -d -e SWAGGER_HOST=http://127.0.0.1 -e SWAGGER_BASE_PATH=/v2 -p 80:8080 swaggerapi/petstore:latest; fi
   - export M2_HOME=$HOME/apache-maven-3.5.0
   - if [ ! -d $M2_HOME/bin ]; then curl https://archive.apache.org/dist/maven/maven-3/3.5.0/binaries/apache-maven-3.5.0-bin.tar.gz | tar zxf - -C $HOME; fi
   - export PATH=$M2_HOME/bin:$PATH

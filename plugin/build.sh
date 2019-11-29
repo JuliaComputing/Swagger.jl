@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-PKG_DIR=`readlink -e ${DIR}/..`
-cd ${PKG_DIR}/plugin
+cd ${DIR}/../plugin
 echo "Building Julia plugin..."
 mvn package
 mvn dependency:resolve dependency:build-classpath -Dmdep.outputFile=classpath.tmp
