@@ -43,6 +43,6 @@ _where_
 
 Typically, you would generate the files into a `src` directory for a package. The generated code is ready to be used as a Julia package directly (So long as the package name is passed correctly -- see below)
 
-The configuration file (`.json`) can have the following options:
+The configuration file (`config.json`) can have the following options:
 
 - `packageName`: the Julia package to generate (`SwaggerClient` by default)
