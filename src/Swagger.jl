@@ -5,9 +5,11 @@ using JSON
 using MbedTLS
 using Dates
 
-import Base: convert, show, summary, getindex, keys, length, getproperty, setproperty!, propertynames
+import Base: convert, show, summary, getindex, keys, length, getproperty, setproperty!, propertynames, iterate
+if isdefined(Base, :hasproperty)
+    import Base: hasproperty
+end
 import JSON: lower
-import Base: iterate
 
 abstract type SwaggerModel end
 abstract type SwaggerApi end
