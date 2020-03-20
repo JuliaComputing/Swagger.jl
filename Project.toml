@@ -1,7 +1,7 @@
 name = "Swagger"
 uuid = "2d69052b-6a58-5cd9-a030-a48559c324ac"
 authors = ["Tanmay Mohapatra <tanmaykm@gmail.com>"]
-version = "0.2.3"
+version = "0.2.4"
 
 [deps]
 Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
