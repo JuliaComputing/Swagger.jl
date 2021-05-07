@@ -1,7 +1,10 @@
 name = "Swagger"
 uuid = "2d69052b-6a58-5cd9-a030-a48559c324ac"
+keywords = ["Swagger", "OpenApi", "REST"]
+license = "MIT"
+desc = "Swagger (OpenAPI) helper and code generator for Julia"
 authors = ["Tanmay Mohapatra <tanmaykm@gmail.com>"]
-version = "0.2.4"
+version = "0.2.5"
 
 [deps]
 Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
@@ -10,8 +13,8 @@ JSON = "682c06a0-de6a-54ab-a142-c8b1cf79cde6"
 MbedTLS = "739be429-bea8-5141-9913-cc70e7f3736d"
 
 [compat]
-julia = "~1"
-HTTP = "~0.8"
+julia = "1"
+HTTP = "0.8, 0.9"
 JSON = "0.20, 0.21"
 MbedTLS = "0.6.8, 0.7, 1"
 
