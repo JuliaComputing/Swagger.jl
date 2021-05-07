@@ -22,7 +22,7 @@ First, you need to build the Swagger Java libraries. Ensure you have Java and ma
 plugin/build.sh
 ```
 
-A single jar file (julia-swagger-codegen-0.0.2.jar) will be produced in `plugin/target`.
+A single jar file (julia-swagger-codegen-0.0.3.jar) will be produced in `plugin/target`.
 
 You can now use that for codegen.
 
@@ -33,7 +33,7 @@ Note: problems have been reported while building with JDK 9 on MacOS likely beca
 Use the supplied script `plugin/generate.sh` and point it to the specification file and a configuration file. E.g.:
 
 ```
-${SWAGGERDIR}/plugin/generate.sh config-i ${SPECDIR}/${SPECFILE} -o ${GENDIR} -c config.json
+${SWAGGERDIR}/plugin/generate.sh config -i ${SPECDIR}/${SPECFILE} -o ${GENDIR} -c config.json
 ```
 _where_
 `SWAGGERDIR` is the location of this package
