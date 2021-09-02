@@ -16,7 +16,7 @@ The code generation step required by this package is best done on linux. Generat
 
 ### Building
 
-First, you need to build the Swagger Java libraries. Ensure you have Java and maven installed, and the `java` and `mvn` commands available on the path. Then, from the directory where Swagger.jl has been downloads, run this:
+First, you need to build the Swagger Java libraries. Ensure you have Java and maven installed, and the `java` and `mvn` commands available on the path. Then, from the directory where Swagger.jl has been downloaded/installed, run this:
 
 ```
 plugin/build.sh
@@ -33,7 +33,7 @@ Note: problems have been reported while building with JDK 9 on MacOS likely beca
 Use the supplied script `plugin/generate.sh` and point it to the specification file and a configuration file. E.g.:
 
 ```
-${SWAGGERDIR}/plugin/generate.sh config -i ${SPECDIR}/${SPECFILE} -o ${GENDIR} -c config.json
+${SWAGGERDIR}/plugin/generate.sh -i ${SPECDIR}/${SPECFILE} -o ${GENDIR} -c config.json
 ```
 _where_
 `SWAGGERDIR` is the location of this package
