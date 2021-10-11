@@ -22,7 +22,7 @@ First, you need to build the Swagger Java libraries. Ensure you have Java and ma
 plugin/build.sh
 ```
 
-A single jar file (julia-swagger-codegen-0.0.3.jar) will be produced in `plugin/target`.
+A single jar file (julia-swagger-codegen-0.0.4.jar) will be produced in `plugin/target`.
 
 You can now use that for codegen.
 
@@ -32,7 +32,7 @@ Note: problems have been reported while building with JDK 9 on MacOS likely beca
 
 Use the supplied script `plugin/generate.sh` and point it to the specification file and a configuration file. E.g.:
 
-```
+```bash
 ${SWAGGERDIR}/plugin/generate.sh -i ${SPECDIR}/${SPECFILE} -o ${GENDIR} -c config.json
 ```
 _where_
@@ -51,16 +51,26 @@ The configuration file (`config.json`) can have the following options:
 
 ### APIs
 
-Each API set is generated into a file named `api_<apiname>.jl`. It is represented as a `struct` and the APIs under it are generated as methods. An API set can be constructed by providing the
-swagger client instance that it can use for communication.
+Each API set is generated into a file named `api_<apiname>.jl`. It is represented as a `struct` and the APIs under it are generated as methods. An API set can be constructed by providing the swagger client instance that it can use for communication.
 
-The required API parameters are generated as regular function arguments. Optional parameters are generated as keyword arguments. Method 
-documentation is generated with description, parameter information and return value.
+The required API parameters are generated as regular function arguments. Optional parameters are generated as keyword arguments. Method documentation is generated with description, parameter information and return value. Two variants of the API are generated. The first variant is suitable for calling synchronously and returns a single instance of the result struct.
+
+```julia
+# example synchronous API that returns an Order instance
+getOrderById(api::StoreApi, orderId::Int64)
+```
+
+The second variant is suitable for asynchronous calls to methods that return chunked transfer encoded responses, where in the API streams the response objects into an output channel.
+
+```julia
+# example asynchronous API that streams matching Pet instances into response_stream
+findPetsByStatus(api::PetApi, response_stream::Channel, status::Vector{String})
+```
 
 A client context holds common information to be used across APIs. It also holds a connection to the server and uses that across API calls.
 The client context needs to be passed as the first parameter of all API calls. It can be created as:
 
-```
+```julia
 Client(root::String;
     headers::Dict{String,String}=Dict{String,String}(),
     get_return_type::Function=(default,data)->default,
@@ -108,7 +118,7 @@ In addition to these standard Julia methods, these convenience methods are also 
 
 E.g:
 
-```
+```julia
 # access o.field.subfield1.subfield2
 if haspropertyat(o, "field", "subfield1", "subfield2")
     getpropertyat(o, "field", "subfield1", "subfield2")

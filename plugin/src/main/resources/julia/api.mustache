@@ -13,7 +13,7 @@ Param: {{paramName}}::{{dataType}}{{#required}} (required){{/required}}
 {{/allParams}}
 Return: {{#returnType}}{{returnType}}{{/returnType}}{{^returnType}}Nothing{{/returnType}}
 """
-function {{operationId}}(_api::{{classname}}{{#allParams}}{{#required}}, {{paramName}}{{^isBodyParam}}::{{dataType}}{{/isBodyParam}}{{/required}}{{/allParams}};{{#allParams}}{{^required}} {{paramName}}=nothing,{{/required}}{{/allParams}} _mediaType=nothing)
+function _swaggerinternal_{{operationId}}(_api::{{classname}}{{#allParams}}{{#required}}, {{paramName}}{{^isBodyParam}}::{{dataType}}{{/isBodyParam}}{{/required}}{{/allParams}};{{#allParams}}{{^required}} {{paramName}}=nothing,{{/required}}{{/allParams}} _mediaType=nothing)
 {{#allParams}}
 {{#hasValidation}}
 {{#maxLength}}
@@ -57,7 +57,17 @@ function {{operationId}}(_api::{{classname}}{{#allParams}}{{#required}}, {{param
 {{/formParams}}
     Swagger.set_header_accept(_ctx, [{{#produces}}"{{{mediaType}}}"{{#hasMore}}, {{/hasMore}}{{/produces}}])
     Swagger.set_header_content_type(_ctx, (_mediaType === nothing) ? [{{#consumes}}"{{{mediaType}}}"{{#hasMore}}, {{/hasMore}}{{/consumes}}] : [_mediaType])
+    return _ctx
+end
+
+function {{operationId}}(_api::{{classname}}{{#allParams}}{{#required}}, {{paramName}}{{^isBodyParam}}::{{dataType}}{{/isBodyParam}}{{/required}}{{/allParams}};{{#allParams}}{{^required}} {{paramName}}=nothing,{{/required}}{{/allParams}} _mediaType=nothing)
+    _ctx = _swaggerinternal_{{operationId}}(_api{{#allParams}}{{#required}}, {{paramName}}{{/required}}{{/allParams}};{{#allParams}}{{^required}} {{paramName}}={{paramName}},{{/required}}{{/allParams}} _mediaType=_mediaType)
     Swagger.exec(_ctx)
+end
+
+function {{operationId}}(_api::{{classname}}, response_stream::Channel{{#allParams}}{{#required}}, {{paramName}}{{^isBodyParam}}::{{dataType}}{{/isBodyParam}}{{/required}}{{/allParams}};{{#allParams}}{{^required}} {{paramName}}=nothing,{{/required}}{{/allParams}} _mediaType=nothing)
+    _ctx = _swaggerinternal_{{operationId}}(_api{{#allParams}}{{#required}}, {{paramName}}{{/required}}{{/allParams}};{{#allParams}}{{^required}} {{paramName}}={{paramName}},{{/required}}{{/allParams}} _mediaType=_mediaType)
+    Swagger.exec(_ctx, response_stream)
 end
 
 {{/operation}}

@@ -73,8 +73,8 @@ struct Client
     end
 end
 
-set_user_agent(client::Client, ua::String) = set_header("User-Agent", ua)
-set_cookie(client::Client, ck::String) = set_header("Cookie", ck)
+set_user_agent(client::Client, ua::String) = set_header(client, "User-Agent", ua)
+set_cookie(client::Client, ck::String) = set_header(client, "Cookie", ck)
 set_header(client::Client, name::String, value::String) = (client.headers[name] = value)
 
 struct Ctx
@@ -180,13 +180,13 @@ function prep_args(ctx::Ctx)
     return body, kwargs
 end
 
-response(::Type{Nothing}, resp::HTTP.Response) = nothing::Nothing
-response(::Type{T}, resp::HTTP.Response) where {T <: Real} = response(T, resp.body)::T
-response(::Type{T}, resp::HTTP.Response) where {T <: String} = response(T, resp.body)::T
-function response(::Type{T}, resp::HTTP.Response) where {T}
+response(::Type{Nothing}, resp::HTTP.Response, body=resp.body) = nothing::Nothing
+response(::Type{T}, resp::HTTP.Response, body=resp.body) where {T <: Real} = response(T, body)::T
+response(::Type{T}, resp::HTTP.Response, body=resp.body) where {T <: String} = response(T, body)::T
+function response(::Type{T}, resp::HTTP.Response, body=resp.body) where {T}
     ctype = HTTP.header(resp, "Content-Type", "application/json")
-    (length(resp.body) == 0) && return T()
-    v = response(T, is_json_mime(ctype) ? JSON.parse(String(resp.body)) : resp.body)
+    (length(body) == 0) && return T()
+    v = response(T, is_json_mime(ctype) ? JSON.parse(String(body)) : body)
     v::T
 end
 response(::Type{T}, data::Vector{UInt8}) where {T<:Real} = parse(T, String(data))
@@ -197,7 +197,42 @@ response(::Type{T}, data::Dict{String,Any}) where {T} = from_json(T, data)::T
 response(::Type{T}, data::Dict{String,Any}) where {T<:Dict} = convert(T, data)
 response(::Type{Vector{T}}, data::Vector{V}) where {T,V} = [response(T, v) for v in data]
 
-function exec(ctx::Ctx)
+struct ChunkReader
+    http
+    buffered_input::Base.BufferStream
+    buffer_task::Task
+
+    function ChunkReader(http)
+        buffered_input = Base.BufferStream()
+        buffer_task = @async try
+            write(buffered_input, http)
+        catch ex
+            if !isa(ex, EOFError)
+                @error("exception reading http stream", exception=(ex, catch_backtrace()))
+                rethrow(ex)
+            end
+        finally
+            close(buffered_input)
+        end
+        new(http, buffered_input, buffer_task)
+    end
+end
+
+function Base.iterate(iter::ChunkReader, _state=nothing)
+    if eof(iter.buffered_input)
+        return nothing
+    else
+        out = IOBuffer()
+        while !eof(iter.buffered_input)
+            byte = read(iter.buffered_input, UInt8)
+            (byte == codepoint('\n')) && break
+            write(out, byte)
+        end
+        return (take!(out), iter)
+    end
+end
+
+function do_request(ctx::Ctx, stream::Bool=false; stream_to::Union{Channel,Nothing}=nothing)
     resource_path = replace(ctx.resource, "{format}"=>"json")
     for (k,v) in ctx.path
         resource_path = replace(resource_path, "{$k}"=>v)
@@ -205,14 +240,45 @@ function exec(ctx::Ctx)
 
     # TODO: use auth_settings for authentication
     body, kwargs = prep_args(ctx)
-    if body !== nothing
-        resp = HTTP.request(uppercase(ctx.method), HTTP.URIs.URI(resource_path), ctx.header, body; kwargs...)
-    else
-        resp = HTTP.request(uppercase(ctx.method), HTTP.URIs.URI(resource_path), ctx.header; kwargs...)
+    if stream
+        @assert stream_to !== nothing
     end
+
+    resp = nothing
+
+    function process_stream(http)
+        if body !== nothing
+            write(http, body)
+        end
+        resp = startread(http)
+        for chunk in ChunkReader(http)
+            return_type = ctx.client.get_return_type(ctx.return_type, String(copy(chunk)))
+            data = response(return_type, resp, chunk)
+            put!(stream_to, data)
+        end
+    end
+
+    if stream
+        HTTP.open(process_stream, uppercase(ctx.method), HTTP.URIs.URI(resource_path), ctx.header; kwargs...)
+        close(stream_to)
+    else
+        if body !== nothing
+            resp = HTTP.request(uppercase(ctx.method), HTTP.URIs.URI(resource_path), ctx.header, body; kwargs...)
+        else
+            resp = HTTP.request(uppercase(ctx.method), HTTP.URIs.URI(resource_path), ctx.header; kwargs...)
+        end
+    end
+
+    return resp
+end
+
+function exec(ctx::Ctx, stream_to::Union{Channel,Nothing}=nothing)
+    stream = stream_to !== nothing
+    resp = do_request(ctx, stream; stream_to=stream_to)
+
     (200 <= resp.status <= 206) || throw(ApiException(resp))
 
-    response(ctx.client.get_return_type(ctx.return_type, resp), resp)
+    return stream ? resp : response(ctx.client.get_return_type(ctx.return_type, resp), resp)
 end
 
 property_type(::Type{T}, name::Symbol) where {T<:SwaggerModel} = error("invalid type $T")
