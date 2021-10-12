@@ -27,6 +27,21 @@ function test(uri)
     @test isa(order, Order)
     @test order.id == 10
 
+    println("   - getOrderById (async)")
+    response_channel = Channel{Order}(1)
+    @test_throws Swagger.ValidationException getOrderById(api, response_channel, 0)
+    @sync begin
+        @async begin
+            resp = getOrderById(api, response_channel, 10)
+            @test (200 <= resp.status <= 206)
+        end
+        @async begin
+            order = take!(response_channel)
+            @test isa(order, Order)
+            @test order.id == 10
+        end
+    end
+
     println("   - deleteOrder")
     @test deleteOrder(api, 10) == nothing
 
