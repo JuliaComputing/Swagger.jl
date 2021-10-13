@@ -1,6 +1,7 @@
 module Swagger
 
-using HTTP
+using Downloads
+using URIs
 using JSON
 using MbedTLS
 using Dates

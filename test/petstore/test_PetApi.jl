@@ -18,14 +18,14 @@ function test(uri)
     pet = Pet(;id=10, category=cat, name="felix", photoUrls=nothing, tags=[tag1,tag2], status="pending")
 
     println("   - addPet")
-    @test addPet(api, pet) == nothing
+    @test addPet(api, pet) === nothing
 
     println("   - updatePet")
     pet.status = "available"
-    @test updatePet(api, pet) == nothing
+    @test updatePet(api, pet) === nothing
 
     println("   - updatePetWithForm")
-    @test updatePetWithForm(api, 10; name="meow") == nothing
+    @test updatePetWithForm(api, 10; name="meow") === nothing
 
     println("   - getPetById")
     pet10 = getPetById(api, 10)

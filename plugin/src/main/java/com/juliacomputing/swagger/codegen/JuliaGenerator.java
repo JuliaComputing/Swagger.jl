@@ -73,7 +73,6 @@ public class JuliaGenerator extends DefaultCodegen implements CodegenConfig {
         apiTemplateFiles.put("api.mustache", ".jl");
 
         supportingFiles.clear();
-        supportingFiles.add(new SupportingFile("REQUIRE", "", "REQUIRE"));
 
         // Template Location: where templates will be read from. The generator will use the resource stream to attempt to read the templates.
         templateDir = "julia";

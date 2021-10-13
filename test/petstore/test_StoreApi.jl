@@ -43,7 +43,7 @@ function test(uri)
     end
 
     println("   - deleteOrder")
-    @test deleteOrder(api, 10) == nothing
+    @test deleteOrder(api, 10) === nothing
 
     nothing
 end
