@@ -74,7 +74,7 @@ struct Client
         clntoptions = Dict{Symbol,Any}(:throw=>false, :verbose=>false)
         downloader = Downloads.Downloader()
         downloader.easy_hook = (easy, opts) -> begin
-            Curl.setopt(easy, Curl.CURLOPT_LOW_SPEED_TIME, long_polling_timeout)
+            Downloads.Curl.setopt(easy, LibCURL.CURLOPT_LOW_SPEED_TIME, long_polling_timeout)
         end
         new(root, headers, get_return_type, clntoptions, downloader)
     end
@@ -98,11 +98,12 @@ struct Ctx
     file::Dict{String,String}
     body::Any
     timeout::Int
+    curl_mime_upload::Any
 
     function Ctx(client::Client, method::String, return_type, resource::String, auth, body=nothing; timeout::Int=DEFAULT_TIMEOUT_SECS)
         resource = client.root * resource
         headers = copy(client.headers)
-        new(client, method, return_type, resource, auth, Dict{String,String}(), Dict{String,String}(), headers, Dict{String,String}(), Dict{String,String}(), body, timeout)
+        new(client, method, return_type, resource, auth, Dict{String,String}(), Dict{String,String}(), headers, Dict{String,String}(), Dict{String,String}(), body, timeout, nothing)
     end
 end
 
@@ -153,6 +154,8 @@ end
 
 function prep_args(ctx::Ctx)
     kwargs = copy(ctx.client.clntoptions)
+    kwargs[:downloader] = ctx.client.downloader     # use the default downloader for most cases
+
     isempty(ctx.file) && (ctx.body === nothing) && isempty(ctx.form) && !("Content-Length" in keys(ctx.header)) && (ctx.header["Content-Length"] = "0")
     headers = ctx.header
     body = nothing
@@ -160,15 +163,26 @@ function prep_args(ctx::Ctx)
         headers["Content-Type"] = "application/x-www-form-urlencoded"
         body = URIs.escapeuri(ctx.form)
     end
-    # TODO: multipart upload
-    # if !isempty(ctx.file)
-    #     (body === nothing) && (body = Dict())
-    #     idx = 1
-    #     for (_k,_v) in ctx.file
-    #         body["multi$idx"] = HTTP.Multipart(_k, open(_v))
-    #         idx += 1
-    #     end
-    # end
+
+    if !isempty(ctx.file)
+        # use a separate downloader for file uploads
+        # until we have something like https://github.com/JuliaLang/Downloads.jl/pull/148
+        downloader = Downloads.Downloader()
+        downloader.easy_hook = (easy, opts) -> begin
+            Downloads.Curl.setopt(easy, LibCURL.CURLOPT_LOW_SPEED_TIME, long_polling_timeout)
+            mime = LibCURL.curl_mime_init(easy)
+            for (_k,_v) in ctx.file
+                part = LibCURL.curl_mime_addpart(mime)
+                LibCURL.curl_mime_name(part, _k)
+                LibCURL.curl_mime_filedata(part, _v)
+                # TODO: make provision to call curl_mime_type in future?
+            end
+            Downloads.Curl.setopt(easy, LibCURL.CURLOPT_MIMEPOST, mime)
+        end
+        kwargs[:downloader] = downloader
+        ctx.curl_mime_upload = mime
+    end
+
     if ctx.body !== nothing
         (isempty(ctx.form) && isempty(ctx.file)) || throw(SwaggerException("Can not send both form-encoded data and a request body"))
         if is_json_mime(get(ctx.header, "Content-Type", "application/json"))
@@ -294,6 +308,11 @@ function do_request(ctx::Ctx, stream::Bool=false; stream_to::Union{Channel,Nothi
                     output=output,
                     kwargs...
                 )
+    end
+
+    if ctx.curl_mime_upload !== nothing
+        LibCURL.curl_mime_free(ctx.curl_mime_upload)
+        ctx.curl_mime_upload = nothing
     end
 
     return resp, output
