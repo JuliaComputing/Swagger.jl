@@ -8,7 +8,7 @@ const gencmd = joinpath(dirname(@__FILE__()), "petstore", "generate.sh")
 println("Generating petstore using $gencmd")
 run(`$gencmd`)
 
-if ENV["TRAVIS_OS_NAME"] == "linux"
+if ENV["RUNNER_OS"] == "Linux"
     println("Running petstore tests...")
     include("petstore/runtests.jl")
 else

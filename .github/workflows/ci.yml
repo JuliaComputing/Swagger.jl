@@ -1,0 +1,66 @@
+name: CI
+on:
+  push:
+    branches: [master]
+    tags: ["*"]
+  pull_request:
+jobs:
+  test:
+    name: Julia ${{ matrix.version }} - ${{ matrix.os }} - ${{ matrix.arch }} - ${{ github.event_name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        version:
+          - '1.0'
+          - '1' # automatically expands to the latest stable 1.x release of Julia
+          - nightly
+        os:
+          - ubuntu-latest
+        arch:
+          - x64
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-java@v2
+        with:
+          distribution: 'adopt'
+          java-version: '11'
+      - name: run petstore server
+        shell: bash
+        run: |
+            docker pull swaggerapi/petstore:latest
+            docker run -d -e SWAGGER_HOST=http://127.0.0.1 -e SWAGGER_BASE_PATH=/v2 -p 80:8080 swaggerapi/petstore:latest
+      - name: setup env
+        run: |
+            echo "M2_HOME=$HOME/apache-maven-3.5.0" >> $GITHUB_ENV
+            echo "PATH=$M2_HOME/bin:$PATH" >> $GITHUB_ENV
+      - name: setup maven
+        shell: bash
+        run: |
+            if [ ! -d $M2_HOME/bin ]; then curl https://archive.apache.org/dist/maven/maven-3/3.5.0/binaries/apache-maven-3.5.0-bin.tar.gz | tar zxf - -C $HOME; fi
+      - uses: julia-actions/setup-julia@v1
+        with:
+          version: ${{ matrix.version }}
+          arch: ${{ matrix.arch }}
+      - uses: actions/cache@v1
+        env:
+          cache-name: cache-artifacts
+        with:
+          path: ~/.julia/artifacts
+          key: ${{ runner.os }}-test-${{ env.cache-name }}-${{ hashFiles('**/Project.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-test-${{ env.cache-name }}-
+            ${{ runner.os }}-test-
+            ${{ runner.os }}-
+      - uses: julia-actions/julia-buildpkg@v1
+      - name: build plugin
+        shell: bash
+        run: |
+            ./plugin/build.sh
+            echo "export CLASSPATH=`cat ./plugin/classpath`" >> $GITHUB_ENV
+            echo $CLASSPATH
+      - uses: julia-actions/julia-runtest@v1
+      - uses: julia-actions/julia-processcoverage@v1
+      - uses: codecov/codecov-action@v1
+        with:
+          file: lcov.info
