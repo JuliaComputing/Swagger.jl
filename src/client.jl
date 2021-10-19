@@ -262,9 +262,8 @@ function do_request(ctx::Ctx, stream::Bool=false; stream_to::Union{Channel,Nothi
 
     body, kwargs = prep_args(ctx)
     if body !== nothing
-        input = Base.BufferStream()
+        input = PipeBuffer()
         write(input, body)
-        close(input)
     else
         input = nothing
     end
