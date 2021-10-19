@@ -275,46 +275,48 @@ function do_request(ctx::Ctx, stream::Bool=false; stream_to::Union{Channel,Nothi
     resp = nothing
     output = Base.BufferStream()
 
-    if stream
-        @sync begin
-            @async begin
-                try
-                    resp = Downloads.request(resource_path;
+    try
+        if stream
+            @sync begin
+                @async begin
+                    try
+                        resp = Downloads.request(resource_path;
+                            input=input,
+                            output=output,
+                            kwargs...
+                        )
+                        close(output)
+                    catch ex
+                        @error("exception invoking request", exception=(ex,catch_backtrace()))
+                        rethrow()
+                    end
+                end
+                @async begin
+                    try
+                        for chunk in ChunkReader(output)
+                            return_type = ctx.client.get_return_type(ctx.return_type, String(copy(chunk)))
+                            data = response(return_type, resp, chunk)
+                            put!(stream_to, data)
+                        end
+                        close(stream_to)
+                    catch ex
+                        @error("exception reading chunk", exception=(ex,catch_backtrace()))
+                        rethrow()
+                    end
+                end
+            end
+        else
+            resp = Downloads.request(resource_path;
                         input=input,
                         output=output,
                         kwargs...
                     )
-                    close(output)
-                catch ex
-                    @error("exception invoking request", exception=(ex,catch_backtrace()))
-                    rethrow()
-                end
-            end
-            @async begin
-                try
-                    for chunk in ChunkReader(output)
-                        return_type = ctx.client.get_return_type(ctx.return_type, String(copy(chunk)))
-                        data = response(return_type, resp, chunk)
-                        put!(stream_to, data)
-                    end
-                    close(stream_to)
-                catch ex
-                    @error("exception reading chunk", exception=(ex,catch_backtrace()))
-                    rethrow()
-                end
-            end
         end
-    else
-        resp = Downloads.request(resource_path;
-                    input=input,
-                    output=output,
-                    kwargs...
-                )
-    end
-
-    if ctx.curl_mime_upload !== nothing
-        LibCURL.curl_mime_free(ctx.curl_mime_upload)
-        ctx.curl_mime_upload = nothing
+    finally
+        if ctx.curl_mime_upload !== nothing
+            LibCURL.curl_mime_free(ctx.curl_mime_upload)
+            ctx.curl_mime_upload = nothing
+        end
     end
 
     return resp, output
