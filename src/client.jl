@@ -53,10 +53,16 @@ struct ApiException <: Exception
     status::Int
     reason::String
     resp::Downloads.Response
+    error::Union{Nothing,Downloads.RequestError}
 
+    function ApiException(error::Downloads.RequestError; reason::String="")
+        isempty(reason) && (reason = error.message)
+        isempty(reason) && (reason = error.resp.message)
+        new(error.resp.status, reason, error.resp, error)
+    end
     function ApiException(resp::Downloads.Response; reason::String="")
         isempty(reason) && (reason = resp.message)
-        new(resp.status, reason, resp)
+        new(resp.status, reason, resp, nothing)
     end
 end
 
@@ -327,7 +333,9 @@ function exec(ctx::Ctx, stream_to::Union{Channel,Nothing}=nothing)
     stream = stream_to !== nothing
     resp, output = do_request(ctx, stream; stream_to=stream_to)
 
-    (200 <= resp.status <= 206) || throw(ApiException(resp))
+    if isa(resp, Downloads.RequestError) || !(200 <= resp.status <= 206)
+        throw(ApiException(resp))
+    end
 
     if stream
         return resp

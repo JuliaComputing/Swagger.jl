@@ -9,38 +9,53 @@ const TEST_USER = "jlswag"
 const TEST_USER1 = "jlswag1"
 const TEST_USER2 = "jlswag2"
 
+function test_404(uri)
+    @info("Error handling")
+    client = Swagger.Client(uri*"_invalid")
+    api = UserApi(client)
+
+    try
+        loginUser(api, TEST_USER, "testpassword")
+    catch ex
+        @test isa(ex, Swagger.ApiException)
+        @test ex.status == 404
+        @test ex.error === nothing
+        @test ex.resp.status == 404
+    end    
+end
+
 function test(uri)
-    println("testing UserApi...")
+    @info("UserApi")
     client = Swagger.Client(uri)
     api = UserApi(client)
 
-    println("   - loginUser")
+    @info("UserApi - loginUser")
     login_result = loginUser(api, TEST_USER, "testpassword")
     @test !isempty(login_result)
 
-    #println("   - createUser")
+    #@info("UserApi - createUser")
     #user1 = User(; id=100, username=TEST_USER1, firstName="test1", lastName="user1", email="jlswag1@example.com", password="testpass1", phone="1000000001", userStatus=0)
     #@test createUser(api, user1) === nothing
 
-    #println("   - createUsersWithArrayInput")
+    #@info("UserApi - createUsersWithArrayInput")
     #user2 = User(; id=200, username=TEST_USER2, firstName="test2", lastName="user2", email="jlswag2@example.com", password="testpass2", phone="1000000002", userStatus=0)
     #@test createUsersWithArrayInput(api, [user1, user2]) === nothing
 
-    #println("   - createUsersWithListInput")
+    #@info("UserApi - createUsersWithListInput")
     #@test createUsersWithListInput(api, [user1, user2]) === nothing
 
-    println("   - getUserByName")
+    @info("UserApi - getUserByName")
     @test_throws Swagger.ApiException getUserByName(api, randstring())
     @test_throws Swagger.ApiException getUserByName(api, TEST_USER)
     #getuser_result = getUserByName(api, TEST_USER)
     #@test isa(getuser_result, User)
 
-    #println("   - updateUser")
+    #@info("UserApi - updateUser")
     #@test updateUser(api, TEST_USER2, getuser_result) === nothing
-    #println("   - deleteUser")
+    #@info("UserApi - deleteUser")
     #@test deleteUser(api, TEST_USER2) === nothing
 
-    println("   - logoutUser")
+    @info("UserApi - logoutUser")
     logout_result = logoutUser(api)
     @test logout_result === nothing
 
