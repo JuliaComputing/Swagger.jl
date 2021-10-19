@@ -216,9 +216,12 @@ response(::Type{T}, resp::Downloads.Response, body) where {T <: Real} = response
 response(::Type{T}, resp::Downloads.Response, body) where {T <: String} = response(T, body)::T
 function response(::Type{T}, resp::Downloads.Response, body) where {T}
     ctype = header(resp, "Content-Type", "application/json")
+    response(T, is_json_mime(ctype), body)::T
+end
+response(::Type{T}, ::Nothing, body) where {T} = response(T, true, body)
+function response(::Type{T}, is_json::Bool, body) where {T}
     (length(body) == 0) && return T()
-    v = response(T, is_json_mime(ctype) ? JSON.parse(String(body)) : body)
-    v::T
+    response(T, is_json ? JSON.parse(String(body)) : body)::T
 end
 response(::Type{String}, data::Vector{UInt8}) = String(data)
 response(::Type{T}, data::Vector{UInt8}) where {T<:Real} = parse(T, String(data))
