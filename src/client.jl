@@ -311,6 +311,7 @@ function do_request(ctx::Ctx, stream::Bool=false; stream_to::Union{Channel,Nothi
                         output=output,
                         kwargs...
                     )
+            close(output)
         end
     finally
         if ctx.curl_mime_upload !== nothing
@@ -331,7 +332,7 @@ function exec(ctx::Ctx, stream_to::Union{Channel,Nothing}=nothing)
     if stream
         return resp
     else
-        data = readavailable(output)
+        data = read(output)
         return_type = ctx.client.get_return_type(ctx.return_type, String(copy(data)))
         return response(return_type, resp, data)
     end
