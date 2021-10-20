@@ -57,8 +57,8 @@ struct ApiException <: Exception
 
     function ApiException(error::Downloads.RequestError; reason::String="")
         isempty(reason) && (reason = error.message)
-        isempty(reason) && (reason = error.resp.message)
-        new(error.resp.status, reason, error.resp, error)
+        isempty(reason) && (reason = error.response.message)
+        new(error.response.status, reason, error.response, error)
     end
     function ApiException(resp::Downloads.Response; reason::String="")
         isempty(reason) && (reason = resp.message)

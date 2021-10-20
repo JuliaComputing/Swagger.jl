@@ -16,11 +16,21 @@ function test_404(uri)
 
     try
         loginUser(api, TEST_USER, "testpassword")
+        @error("Swagger.ApiException not thrown")
     catch ex
         @test isa(ex, Swagger.ApiException)
         @test ex.status == 404
-        @test ex.error === nothing
-        @test ex.resp.status == 404
+    end
+
+    client = Swagger.Client("http://_invalid/")
+    api = UserApi(client)
+
+    try
+        loginUser(api, TEST_USER, "testpassword")
+        @error("Swagger.ApiException not thrown")
+    catch ex
+        @test isa(ex, Swagger.ApiException)
+        @test startswith(ex.reason, "Could not resolve host")
     end    
 end
 
