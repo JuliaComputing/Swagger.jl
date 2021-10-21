@@ -4,6 +4,7 @@ using ..MyPetStore
 using Swagger
 using Test
 using Random
+using JSON
 
 const TEST_USER = "jlswag"
 const TEST_USER1 = "jlswag1"
@@ -32,6 +33,37 @@ function test_404(uri)
         @test isa(ex, Swagger.ApiException)
         @test startswith(ex.reason, "Could not resolve host")
     end    
+end
+
+function test_parallel(uri)
+    @info("Parallel usage")
+    client = Swagger.Client(uri)
+    api = UserApi(client)
+
+    for gcidx in 1:100
+        @sync begin
+            for idx in 1:10^3
+                @async begin
+                    @debug("[$idx] UserApi Parallel begin")
+                    login_result = loginUser(api, TEST_USER, "testpassword")
+                    @test !isempty(login_result)
+                    result = JSON.parse(login_result)
+                    @test startswith(result["message"], "logged in user session")
+                    @test result["code"] == 200
+
+                    @test_throws Swagger.ApiException getUserByName(api, randstring())
+                    @test_throws Swagger.ApiException getUserByName(api, TEST_USER)
+
+                    logout_result = logoutUser(api)
+                    @test logout_result === nothing
+                    @debug("[$idx] UserApi Parallel end")
+                end
+            end
+        end
+        GC.gc()
+        @info("outer loop $gcidx")
+    end
+    nothing
 end
 
 function test(uri)
