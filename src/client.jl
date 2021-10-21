@@ -10,6 +10,7 @@ const DATETIME_FORMATS = (Dates.DateFormat("yyyy-mm-dd HH:MM:SS.sss"), Dates.Dat
 const DATE_FORMATS = (Dates.DateFormat("yyyy-mm-dd"),)
 
 const DEFAULT_TIMEOUT_SECS = 5*60
+const DEFAULT_LONGPOLL_TIMEOUT_SECS = 15*60
 
 function convert(::Type{DateTime}, str::String)
     # strip off timezone, as Julia DateTime does not parse it
@@ -51,11 +52,17 @@ end
 struct ApiException <: Exception
     status::Int
     reason::String
-    resp::HTTP.Response
+    resp::Downloads.Response
+    error::Union{Nothing,Downloads.RequestError}
 
-    function ApiException(resp::HTTP.Response; reason::String="")
-        isempty(reason) && (reason = get(HTTP.Messages.STATUS_MESSAGES, resp.status, reason))
-        new(resp.status, reason, resp)
+    function ApiException(error::Downloads.RequestError; reason::String="")
+        isempty(reason) && (reason = error.message)
+        isempty(reason) && (reason = error.response.message)
+        new(error.response.status, reason, error.response, error)
+    end
+    function ApiException(resp::Downloads.Response; reason::String="")
+        isempty(reason) && (reason = resp.message)
+        new(resp.status, reason, resp, nothing)
     end
 end
 
@@ -63,13 +70,19 @@ struct Client
     root::String
     headers::Dict{String,String}
     get_return_type::Function   # user provided hook to get return type from response data
-    clntoptions::Dict
+    clntoptions::Dict{Symbol,Any}
+    downloader::Downloader
 
-    function Client(root::String; headers::Dict{String,String}=Dict{String,String}(), get_return_type::Function=(default,data)->default, sslconfig=nothing, require_ssl_verification=true)
-        endswith(root, '/') && @warn("Root URI ($root) terminates with '/'. Ensure that resource paths do not begin with '/'. This is unconventional.")
-        clntoptions = Dict{Symbol,Any}(:status_exception=>false, :retries=>0, :require_ssl_verification=>require_ssl_verification)
-        (sslconfig === nothing) || (clntoptions[:sslconfig] = sslconfig)
-        new(root, headers, get_return_type, clntoptions)
+    function Client(root::String;
+            headers::Dict{String,String}=Dict{String,String}(),
+            get_return_type::Function=(default,data)->default,
+            long_polling_timeout::Int=DEFAULT_LONGPOLL_TIMEOUT_SECS)
+        clntoptions = Dict{Symbol,Any}(:throw=>false, :verbose=>false)
+        downloader = Downloads.Downloader()
+        downloader.easy_hook = (easy, opts) -> begin
+            Downloads.Curl.setopt(easy, LibCURL.CURLOPT_LOW_SPEED_TIME, long_polling_timeout)
+        end
+        new(root, headers, get_return_type, clntoptions, downloader)
     end
 end
 
@@ -91,11 +104,12 @@ struct Ctx
     file::Dict{String,String}
     body::Any
     timeout::Int
+    curl_mime_upload::Any
 
     function Ctx(client::Client, method::String, return_type, resource::String, auth, body=nothing; timeout::Int=DEFAULT_TIMEOUT_SECS)
         resource = client.root * resource
         headers = copy(client.headers)
-        new(client, method, return_type, resource, auth, Dict{String,String}(), Dict{String,String}(), headers, Dict{String,String}(), Dict{String,String}(), body, timeout)
+        new(client, method, return_type, resource, auth, Dict{String,String}(), Dict{String,String}(), headers, Dict{String,String}(), Dict{String,String}(), body, timeout, nothing)
     end
 end
 
@@ -140,34 +154,47 @@ function set_param(params::Dict{String,String}, name::String, value::Union{Nothi
     else
         dlm = get(COLL_DLM, collection_format, "")
         isempty(dlm) && throw(SwaggerException("Unsupported collection format $collection_format"))
-        params[name] = join(map((x)->string(x), value), dlm)
+        params[name] = join(string.(value), dlm)
     end
 end
 
 function prep_args(ctx::Ctx)
     kwargs = copy(ctx.client.clntoptions)
+    kwargs[:downloader] = ctx.client.downloader     # use the default downloader for most cases
+
     isempty(ctx.file) && (ctx.body === nothing) && isempty(ctx.form) && !("Content-Length" in keys(ctx.header)) && (ctx.header["Content-Length"] = "0")
-    isempty(ctx.query) || (kwargs[:query] = ctx.query)
     headers = ctx.header
     body = nothing
     if !isempty(ctx.form)
         headers["Content-Type"] = "application/x-www-form-urlencoded"
-        body = HTTP.URIs.escapeuri(ctx.form)
+        body = URIs.escapeuri(ctx.form)
     end
+
     if !isempty(ctx.file)
-        (body === nothing) && (body = Dict())
-        idx = 1
-        for (_k,_v) in ctx.file
-            body["multi$idx"] = HTTP.Multipart(_k, open(_v))
-            idx += 1
+        # use a separate downloader for file uploads
+        # until we have something like https://github.com/JuliaLang/Downloads.jl/pull/148
+        downloader = Downloads.Downloader()
+        downloader.easy_hook = (easy, opts) -> begin
+            Downloads.Curl.setopt(easy, LibCURL.CURLOPT_LOW_SPEED_TIME, long_polling_timeout)
+            mime = LibCURL.curl_mime_init(easy)
+            for (_k,_v) in ctx.file
+                part = LibCURL.curl_mime_addpart(mime)
+                LibCURL.curl_mime_name(part, _k)
+                LibCURL.curl_mime_filedata(part, _v)
+                # TODO: make provision to call curl_mime_type in future?
+            end
+            Downloads.Curl.setopt(easy, LibCURL.CURLOPT_MIMEPOST, mime)
         end
+        kwargs[:downloader] = downloader
+        ctx.curl_mime_upload = mime
     end
+
     if ctx.body !== nothing
         (isempty(ctx.form) && isempty(ctx.file)) || throw(SwaggerException("Can not send both form-encoded data and a request body"))
         if is_json_mime(get(ctx.header, "Content-Type", "application/json"))
             body = to_json(ctx.body)
         elseif ("application/x-www-form-urlencoded" == ctx.header["Content-Type"]) && isa(ctx.body, Dict)
-            body = HTTP.URIs.escapeuri(ctx.body)
+            body = URIs.escapeuri(ctx.body)
         elseif isa(ctx.boody, SwaggerModel) && isempty(get(ctx.header, "Content-Type", ""))
             headers["Content-Type"] = "application/json"
             body = to_json(ctx.body)
@@ -175,22 +202,35 @@ function prep_args(ctx::Ctx)
             body = ctx.body
         end
     end
-    # set the timeout
-    kwargs[:readtimeout] = ctx.timeout
+
+    kwargs[:timeout] = ctx.timeout
+    kwargs[:method] = uppercase(ctx.method)
+    kwargs[:headers] = headers
+
     return body, kwargs
 end
 
-response(::Type{Nothing}, resp::HTTP.Response, body=resp.body) = nothing::Nothing
-response(::Type{T}, resp::HTTP.Response, body=resp.body) where {T <: Real} = response(T, body)::T
-response(::Type{T}, resp::HTTP.Response, body=resp.body) where {T <: String} = response(T, body)::T
-function response(::Type{T}, resp::HTTP.Response, body=resp.body) where {T}
-    ctype = HTTP.header(resp, "Content-Type", "application/json")
-    (length(body) == 0) && return T()
-    v = response(T, is_json_mime(ctype) ? JSON.parse(String(body)) : body)
-    v::T
+function header(resp::Downloads.Response, name::AbstractString, defaultval::AbstractString)
+    for (n,v) in resp.headers
+        (n == name) && (return v)
+    end
+    return defaultval
 end
+
+response(::Type{Nothing}, resp::Downloads.Response, body) = nothing::Nothing
+response(::Type{T}, resp::Downloads.Response, body) where {T <: Real} = response(T, body)::T
+response(::Type{T}, resp::Downloads.Response, body) where {T <: String} = response(T, body)::T
+function response(::Type{T}, resp::Downloads.Response, body) where {T}
+    ctype = header(resp, "Content-Type", "application/json")
+    response(T, is_json_mime(ctype), body)::T
+end
+response(::Type{T}, ::Nothing, body) where {T} = response(T, true, body)
+function response(::Type{T}, is_json::Bool, body) where {T}
+    (length(body) == 0) && return T()
+    response(T, is_json ? JSON.parse(String(body)) : body)::T
+end
+response(::Type{String}, data::Vector{UInt8}) = String(data)
 response(::Type{T}, data::Vector{UInt8}) where {T<:Real} = parse(T, String(data))
-response(::Type{T}, data::Vector{UInt8}) where {T<:String} = String(data)::T
 response(::Type{T}, data::T) where {T} = data
 response(::Type{T}, data) where {T} = convert(T, data)
 response(::Type{T}, data::Dict{String,Any}) where {T} = from_json(T, data)::T
@@ -198,24 +238,7 @@ response(::Type{T}, data::Dict{String,Any}) where {T<:Dict} = convert(T, data)
 response(::Type{Vector{T}}, data::Vector{V}) where {T,V} = [response(T, v) for v in data]
 
 struct ChunkReader
-    http
     buffered_input::Base.BufferStream
-    buffer_task::Task
-
-    function ChunkReader(http)
-        buffered_input = Base.BufferStream()
-        buffer_task = @async try
-            write(buffered_input, http)
-        catch ex
-            if !isa(ex, EOFError)
-                @error("exception reading http stream", exception=(ex, catch_backtrace()))
-                rethrow(ex)
-            end
-        finally
-            close(buffered_input)
-        end
-        new(http, buffered_input, buffer_task)
-    end
 end
 
 function Base.iterate(iter::ChunkReader, _state=nothing)
@@ -233,52 +256,94 @@ function Base.iterate(iter::ChunkReader, _state=nothing)
 end
 
 function do_request(ctx::Ctx, stream::Bool=false; stream_to::Union{Channel,Nothing}=nothing)
+    # prepare the url
     resource_path = replace(ctx.resource, "{format}"=>"json")
     for (k,v) in ctx.path
         resource_path = replace(resource_path, "{$k}"=>v)
     end
+    # append query params if needed
+    if !isempty(ctx.query)
+        resource_path = string(URIs.URI(URIs.URI(resource_path); query=escapeuri(ctx.query)))
+    end
 
-    # TODO: use auth_settings for authentication
     body, kwargs = prep_args(ctx)
+    if body !== nothing
+        input = PipeBuffer()
+        write(input, body)
+    else
+        input = nothing
+    end
+
     if stream
         @assert stream_to !== nothing
     end
 
     resp = nothing
+    output = Base.BufferStream()
 
-    function process_stream(http)
-        if body !== nothing
-            write(http, body)
-        end
-        resp = startread(http)
-        for chunk in ChunkReader(http)
-            return_type = ctx.client.get_return_type(ctx.return_type, String(copy(chunk)))
-            data = response(return_type, resp, chunk)
-            put!(stream_to, data)
-        end
-    end
-
-    if stream
-        HTTP.open(process_stream, uppercase(ctx.method), HTTP.URIs.URI(resource_path), ctx.header; kwargs...)
-        close(stream_to)
-    else
-        if body !== nothing
-            resp = HTTP.request(uppercase(ctx.method), HTTP.URIs.URI(resource_path), ctx.header, body; kwargs...)
+    try
+        if stream
+            @sync begin
+                @async begin
+                    try
+                        resp = Downloads.request(resource_path;
+                            input=input,
+                            output=output,
+                            kwargs...
+                        )
+                        close(output)
+                    catch ex
+                        @error("exception invoking request", exception=(ex,catch_backtrace()))
+                        rethrow()
+                    end
+                end
+                @async begin
+                    try
+                        for chunk in ChunkReader(output)
+                            return_type = ctx.client.get_return_type(ctx.return_type, String(copy(chunk)))
+                            data = response(return_type, resp, chunk)
+                            put!(stream_to, data)
+                        end
+                        close(stream_to)
+                    catch ex
+                        @error("exception reading chunk", exception=(ex,catch_backtrace()))
+                        rethrow()
+                    end
+                end
+            end
         else
-            resp = HTTP.request(uppercase(ctx.method), HTTP.URIs.URI(resource_path), ctx.header; kwargs...)
+            resp = Downloads.request(resource_path;
+                        input=input,
+                        output=output,
+                        kwargs...
+                    )
+            close(output)
+        end
+    finally
+        if ctx.curl_mime_upload !== nothing
+            LibCURL.curl_mime_free(ctx.curl_mime_upload)
+            ctx.curl_mime_upload = nothing
         end
     end
 
-    return resp
+    return resp, output
 end
 
 function exec(ctx::Ctx, stream_to::Union{Channel,Nothing}=nothing)
     stream = stream_to !== nothing
-    resp = do_request(ctx, stream; stream_to=stream_to)
+    resp, output = do_request(ctx, stream; stream_to=stream_to)
 
-    (200 <= resp.status <= 206) || throw(ApiException(resp))
+    if isa(resp, Downloads.RequestError) || !(200 <= resp.status <= 206)
+        throw(ApiException(resp))
+    end
 
-    return stream ? resp : response(ctx.client.get_return_type(ctx.return_type, resp), resp)
+    if stream
+        return resp
+    else
+        data = read(output)
+        return_type = ctx.client.get_return_type(ctx.return_type, String(copy(data)))
+        return response(return_type, resp, data)
+    end
 end
 
 property_type(::Type{T}, name::Symbol) where {T<:SwaggerModel} = error("invalid type $T")

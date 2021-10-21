@@ -1,7 +1,6 @@
 # Swagger
 
-[![Build Status](https://travis-ci.org/JuliaComputing/Swagger.jl.svg?branch=master)](https://travis-ci.org/JuliaComputing/Swagger.jl)
-[![Coverage Status](https://coveralls.io/repos/JuliaComputing/Swagger.jl/badge.svg?branch=master&service=github)](https://coveralls.io/github/JuliaComputing/Swagger.jl?branch=master)
+[![Build Status](https://github.com/JuliaComputing/Swagger.jl/workflows/CI/badge.svg)](https://github.com/JuliaComputing/Swagger.jl/actions?query=workflow%3ACI+branch%3Amaster)
 [![codecov.io](http://codecov.io/github/JuliaComputing/Swagger.jl/coverage.svg?branch=master)](http://codecov.io/github/JuliaComputing/Swagger.jl?branch=master)
 
 This is a Julia plugin and code generator to generate your own client library with Swagger.

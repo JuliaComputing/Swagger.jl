@@ -5,12 +5,12 @@ using Test
 ("JULIA" in keys(ENV)) || (ENV["JULIA"] = joinpath(Sys.BINDIR, "julia"))
 
 const gencmd = joinpath(dirname(@__FILE__()), "petstore", "generate.sh")
-println("Generating petstore using $gencmd")
+@info("Generating petstore", gencmd)
 run(`$gencmd`)
 
 if ENV["RUNNER_OS"] == "Linux"
-    println("Running petstore tests...")
+    @info("Running petstore tests")
     include("petstore/runtests.jl")
 else
-    println("Skipping petstore tests in OSX (can not run petstore docker on travis OSX)")
+    @info("Skipping petstore tests in OSX (can not run petstore docker on travis OSX)")
 end
