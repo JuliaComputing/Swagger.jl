@@ -284,17 +284,20 @@ function do_request(ctx::Ctx, stream::Bool=false; stream_to::Union{Channel,Nothi
     try
         if stream
             @sync begin
-                @async begin
+                download_task = @async begin
                     try
                         resp = Downloads.request(resource_path;
                             input=input,
                             output=output,
                             kwargs...
                         )
-                        close(output)
                     catch ex
-                        @error("exception invoking request", exception=(ex,catch_backtrace()))
-                        rethrow()
+                        if !isa(ex, InterruptException)
+                            @error("exception invoking request", exception=(ex,catch_backtrace()))
+                            rethrow()
+                        end
+                    finally
+                        close(output)
                     end
                 end
                 @async begin
@@ -304,10 +307,24 @@ function do_request(ctx::Ctx, stream::Bool=false; stream_to::Union{Channel,Nothi
                             data = response(return_type, resp, chunk)
                             put!(stream_to, data)
                         end
-                        close(stream_to)
                     catch ex
-                        @error("exception reading chunk", exception=(ex,catch_backtrace()))
-                        rethrow()
+                        if !isa(ex, InvalidStateException)
+                            @error("exception reading chunk", exception=(ex,catch_backtrace()))
+                            rethrow()
+                        end
+                    finally
+                        close(stream_to)
+                    end
+                end
+                @async begin
+                    while isopen(stream_to)
+                        try
+                            wait(stream_to)
+                            yield()
+                        catch ex
+                            isa(ex, InvalidStateException) || rethrow(ex)
+                            istaskdone(download_task) || schedule(download_task, InterruptException(), error=true)
+                        end
                     end
                 end
             end
@@ -332,6 +349,11 @@ end
 function exec(ctx::Ctx, stream_to::Union{Channel,Nothing}=nothing)
     stream = stream_to !== nothing
     resp, output = do_request(ctx, stream; stream_to=stream_to)
+
+    if resp === nothing
+        # request was interrupted
+        return nothing
+    end
 
     if isa(resp, Downloads.RequestError) || !(200 <= resp.status <= 206)
         throw(ApiException(resp))
