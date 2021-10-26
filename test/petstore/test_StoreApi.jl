@@ -42,6 +42,11 @@ function test(uri)
         end
     end
 
+    # a closed channel is equivalent of cancellation of the call, no error should be thrown
+    @test !isopen(response_channel)
+    resp = getOrderById(api, response_channel, 10)
+    @test (200 <= resp.status <= 206)
+
     @info("StoreApi - deleteOrder")
     @test deleteOrder(api, 10) === nothing
 
