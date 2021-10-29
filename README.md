@@ -73,8 +73,7 @@ The client context needs to be passed as the first parameter of all API calls. I
 Client(root::String;
     headers::Dict{String,String}=Dict{String,String}(),
     get_return_type::Function=(default,data)->default,
-    sslconfig=nothing,
-    require_ssl_verification=true)
+    long_polling_timeout::Int=DEFAULT_LONGPOLL_TIMEOUT_SECS)
 ```
 
 Where:
@@ -82,15 +81,14 @@ Where:
 - `root`: the root URI where APIs are hosted (should not end with a `/`)
 - `headers`: any additional headers that need to be passed along with all API calls
 - `get_return_type`: optional method that can map a Julia type to a return type other than what is specified in the API specification by looking at the data (this is used only in special cases, for example when models are allowed to be dynamically loaded)
-- `sslconfig`: optional SSL context to use while connecting, e.g. with client certificates needed for validation
-- `require_ssl_verification`: whether to verify the SSL certificate presented by the server (default is to validate)
+- `long_polling_timeout`: optional timeout to apply for long polling methods (default `Swagger.DEFAULT_LONGPOLL_TIMEOUT_SECS`)
 
 In case of any errors an instance of `ApiException` is thrown. It has the following fields:
 
 - `status::Int`: HTTP status code
 - `reason::String`: Optional human readable string
-- `resp::HTTP.Response`: The HTTP Response instance associated with this API call
-
+- `resp::Downloads.Response`: The HTTP Response for this call
+- `error::Union{Nothing,Downloads.RequestError}`: The HTTP error on request failure
 
 An API call involves the following steps:
 - The URL to be invoked is prepared by replacing placeholders in the API URL template with the supplied function parameters.
