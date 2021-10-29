@@ -308,7 +308,7 @@ function do_request(ctx::Ctx, stream::Bool=false; stream_to::Union{Channel,Nothi
                             put!(stream_to, data)
                         end
                     catch ex
-                        if !isa(ex, InvalidStateException)
+                        if !isa(ex, InvalidStateException) && isopen(stream_to)
                             @error("exception reading chunk", exception=(ex,catch_backtrace()))
                             rethrow()
                         end
