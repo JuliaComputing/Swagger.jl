@@ -317,15 +317,18 @@ function do_request(ctx::Ctx, stream::Bool=false; stream_to::Union{Channel,Nothi
                     end
                 end
                 @async begin
+                    interrupted = false
                     while isopen(stream_to)
                         try
                             wait(stream_to)
                             yield()
                         catch ex
                             isa(ex, InvalidStateException) || rethrow(ex)
+                            interrupted = true
                             istaskdone(download_task) || schedule(download_task, InterruptException(), error=true)
                         end
                     end
+                    interrupted || istaskdone(download_task) || schedule(download_task, InterruptException(), error=true)
                 end
             end
         else
