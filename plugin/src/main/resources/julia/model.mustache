@@ -8,6 +8,19 @@ else
     @warn("Skipping redefinition of {{classname}} to {{dataType}}")
 end
 {{/isAlias}}{{^isAlias}}
+@doc raw"""{{#description}}{{description}}
+{{/description}}
+
+    {{classname}}(;
+{{#allVars}}
+        {{name}}={{#defaultValue}}{{{defaultValue}}}{{/defaultValue}}{{^defaultValue}}nothing{{/defaultValue}},
+{{/allVars}}
+    )
+
+{{#allVars}}
+    - {{name}}::{{datatype}}{{#description}} : {{description}}{{/description}}
+{{/allVars}}
+"""
 mutable struct {{classname}} <: SwaggerModel
 {{#allVars}}
     {{name}}::Any # spec type: Union{ Nothing, {{datatype}} } # spec name: {{baseName}}
