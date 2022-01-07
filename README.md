@@ -73,7 +73,9 @@ The client context needs to be passed as the first parameter of all API calls. I
 Client(root::String;
     headers::Dict{String,String}=Dict{String,String}(),
     get_return_type::Function=(default,data)->default,
-    long_polling_timeout::Int=DEFAULT_LONGPOLL_TIMEOUT_SECS)
+    timeout::Int=DEFAULT_TIMEOUT_SECS,
+    long_polling_timeout::Int=DEFAULT_LONGPOLL_TIMEOUT_SECS,
+)
 ```
 
 Where:
@@ -81,6 +83,7 @@ Where:
 - `root`: the root URI where APIs are hosted (should not end with a `/`)
 - `headers`: any additional headers that need to be passed along with all API calls
 - `get_return_type`: optional method that can map a Julia type to a return type other than what is specified in the API specification by looking at the data (this is used only in special cases, for example when models are allowed to be dynamically loaded)
+- `timeout`: optional timeout to apply for server methods (default `Swagger.DEFAULT_TIMEOUT_SECS`)
 - `long_polling_timeout`: optional timeout to apply for long polling methods (default `Swagger.DEFAULT_LONGPOLL_TIMEOUT_SECS`)
 
 In case of any errors an instance of `ApiException` is thrown. It has the following fields:
