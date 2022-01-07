@@ -72,23 +72,47 @@ struct Client
     get_return_type::Function   # user provided hook to get return type from response data
     clntoptions::Dict{Symbol,Any}
     downloader::Downloader
+    timeout::Ref{Int}
 
     function Client(root::String;
             headers::Dict{String,String}=Dict{String,String}(),
             get_return_type::Function=(default,data)->default,
-            long_polling_timeout::Int=DEFAULT_LONGPOLL_TIMEOUT_SECS)
+            long_polling_timeout::Int=DEFAULT_LONGPOLL_TIMEOUT_SECS,
+            timeout::Int=DEFAULT_TIMEOUT_SECS)
         clntoptions = Dict{Symbol,Any}(:throw=>false, :verbose=>false)
         downloader = Downloads.Downloader()
         downloader.easy_hook = (easy, opts) -> begin
             Downloads.Curl.setopt(easy, LibCURL.CURLOPT_LOW_SPEED_TIME, long_polling_timeout)
         end
-        new(root, headers, get_return_type, clntoptions, downloader)
+        new(root, headers, get_return_type, clntoptions, downloader, Ref{Int}(timeout))
     end
 end
 
 set_user_agent(client::Client, ua::String) = set_header(client, "User-Agent", ua)
 set_cookie(client::Client, ck::String) = set_header(client, "Cookie", ck)
 set_header(client::Client, name::String, value::String) = (client.headers[name] = value)
+set_timeout(client::Client, timeout::Int) = (client.timeout[] = timeout)
+
+function with_timeout(fn, client::Client, timeout::Integer)
+    oldtimeout = client.timeout[]
+    client.timeout[] = timeout
+    try
+        fn(client)
+    finally
+        client.timeout[] = oldtimeout
+    end
+end
+
+function with_timeout(fn, api::SwaggerApi, timeout::Integer)
+    client = api.client
+    oldtimeout = client.timeout[]
+    client.timeout[] = timeout
+    try
+        fn(api)
+    finally
+        client.timeout[] = oldtimeout
+    end
+end
 
 struct Ctx
     client::Client
@@ -106,7 +130,7 @@ struct Ctx
     timeout::Int
     curl_mime_upload::Any
 
-    function Ctx(client::Client, method::String, return_type, resource::String, auth, body=nothing; timeout::Int=DEFAULT_TIMEOUT_SECS)
+    function Ctx(client::Client, method::String, return_type, resource::String, auth, body=nothing; timeout::Int=client.timeout[])
         resource = client.root * resource
         headers = copy(client.headers)
         new(client, method, return_type, resource, auth, Dict{String,String}(), Dict{String,String}(), headers, Dict{String,String}(), Dict{String,String}(), body, timeout, nothing)

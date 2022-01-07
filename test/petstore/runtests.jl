@@ -6,6 +6,7 @@ include("test_PetApi.jl")
 
 const server = "http://127.0.0.1/v2"
 TestUserApi.test_404(server)
+TestUserApi.test_set_methods()
 
 if get(ENV, "STRESS_PETSTORE", "false") == "true"
     TestUserApi.test_parallel(server)

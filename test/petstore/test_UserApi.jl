@@ -35,6 +35,33 @@ function test_404(uri)
     end    
 end
 
+function test_set_methods()
+    @info("Error handling")
+    client = Swagger.Client("http://_invalid/")
+
+    @test client.timeout[] == Swagger.DEFAULT_TIMEOUT_SECS
+
+    Swagger.with_timeout(client, Swagger.DEFAULT_TIMEOUT_SECS + 10) do client
+        @test client.timeout[] == Swagger.DEFAULT_TIMEOUT_SECS + 10
+    end
+    @test client.timeout[] == Swagger.DEFAULT_TIMEOUT_SECS
+
+    api = UserApi(client)
+    Swagger.with_timeout(api, Swagger.DEFAULT_TIMEOUT_SECS + 10) do api
+        @test api.client.timeout[] == Swagger.DEFAULT_TIMEOUT_SECS + 10
+    end
+    @test client.timeout[] == Swagger.DEFAULT_TIMEOUT_SECS
+
+    Swagger.set_timeout(client, Swagger.DEFAULT_TIMEOUT_SECS + 10)
+    @test client.timeout[] == Swagger.DEFAULT_TIMEOUT_SECS + 10
+
+    @test isempty(client.headers)
+    Swagger.set_user_agent(client, "007")
+    Swagger.set_cookie(client, "crumbly")
+    @test client.headers["User-Agent"] == "007"
+    @test client.headers["Cookie"] == "crumbly"
+end
+
 function test_parallel(uri)
     @info("Parallel usage")
     client = Swagger.Client(uri)
