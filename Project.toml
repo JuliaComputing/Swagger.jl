@@ -4,7 +4,7 @@ keywords = ["Swagger", "OpenApi", "REST"]
 license = "MIT"
 desc = "Swagger (OpenAPI) helper and code generator for Julia"
 authors = ["Tanmay Mohapatra <tanmaykm@gmail.com>"]
-version = "0.3.4"
+version = "0.3.5"
 
 [deps]
 Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
