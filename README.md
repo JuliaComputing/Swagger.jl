@@ -40,7 +40,7 @@ _where_
 `SPECFILE` the name of the openapi specification file from which you are generating Julia code
 `GENDIR` the directory where the generated Julia code will be written
 
-Typically, you would generate the files into a `src` directory for a package. The generated code is ready to be used as a Julia package directly (So long as the package name is passed correctly -- see below)
+Typically, you would generate the files into a `src` directory for a package. The generated code is ready to be used as a Julia module directly.
 
 The configuration file (`config.json`) can have the following options:
 

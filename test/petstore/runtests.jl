@@ -1,4 +1,4 @@
-include(joinpath(dirname(@__FILE__), "MyPetStore", "src", "MyPetStore.jl"))
+include(joinpath(dirname(@__FILE__), "MyPetStore", "MyPetStore.jl"))
 
 include("test_UserApi.jl")
 include("test_StoreApi.jl")
