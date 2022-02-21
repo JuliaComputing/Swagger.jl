@@ -13,8 +13,11 @@ public class JuliaGenerator extends DefaultCodegen implements CodegenConfig {
 
     protected String packageName;
 
-    // source folder where to write the files
-    protected String sourceFolder = "src";
+    // Source folder where to write the files
+    // Disabled for now, but this can be appended to outputFolder along with
+    // other path elements like packageName to get the final outputFolder in
+    // methods like modelFileFolder and apiFileFolder
+    // protected String sourceFolder = "src";
     protected String apiVersion = "1.0.0";
 
     /**
@@ -135,8 +138,8 @@ public class JuliaGenerator extends DefaultCodegen implements CodegenConfig {
 
         additionalProperties.put(CodegenConstants.PACKAGE_NAME, packageName);
 
-        supportingFiles.add(new SupportingFile("client.mustache", "src", packageName + ".jl"));
-        supportingFiles.add(new SupportingFile("modelincludes.mustache", "src", "modelincludes.jl"));
+        supportingFiles.add(new SupportingFile("client.mustache", packageName + ".jl"));
+        supportingFiles.add(new SupportingFile("modelincludes.mustache", "modelincludes.jl"));
     }
 
     /**
@@ -158,7 +161,7 @@ public class JuliaGenerator extends DefaultCodegen implements CodegenConfig {
      * Location to write model files.
      */
     public String modelFileFolder() {
-        return outputFolder + "/" + sourceFolder;
+        return outputFolder;
     }
 
     /**
@@ -166,7 +169,7 @@ public class JuliaGenerator extends DefaultCodegen implements CodegenConfig {
      */
     @Override
     public String apiFileFolder() {
-        return outputFolder + "/" + sourceFolder;
+        return outputFolder;
     }
 
     @Override
