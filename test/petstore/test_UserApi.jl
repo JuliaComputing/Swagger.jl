@@ -5,6 +5,7 @@ using Swagger
 using Test
 using Random
 using JSON
+using URIs
 
 const TEST_USER = "jlswag"
 const TEST_USER1 = "jlswag1"
@@ -60,6 +61,33 @@ function test_set_methods()
     Swagger.set_cookie(client, "crumbly")
     @test client.headers["User-Agent"] == "007"
     @test client.headers["Cookie"] == "crumbly"
+end
+
+function test_login_user_hook(ctx::Swagger.Ctx)
+    ctx.header["actual_password"] = "testpassword"
+    ctx
+end
+
+function test_login_user_hook(resource_path::AbstractString, body::Any, headers::Dict{String,String})
+    uri = URIs.parse_uri(resource_path)    
+    qparams = URIs.queryparams(uri)
+    qparams["password"] = headers["actual_password"]
+    delete!(headers, "actual_password")
+    resource_path = string(URIs.URI(uri; query=escapeuri(qparams)))
+
+    (resource_path, body, headers)
+end
+
+function test_userhook(uri)
+    @info("User hook")
+    client = Swagger.Client(uri; pre_request_hook=test_login_user_hook)
+    api = UserApi(client)
+
+    login_result = loginUser(api, TEST_USER, "wrongpassword")
+    @test !isempty(login_result)
+    result = JSON.parse(login_result)
+    @test startswith(result["message"], "logged in user session")
+    @test result["code"] == 200
 end
 
 function test_parallel(uri)

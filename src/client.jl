@@ -73,18 +73,20 @@ struct Client
     clntoptions::Dict{Symbol,Any}
     downloader::Downloader
     timeout::Ref{Int}
+    pre_request_hook::Function  # user provided hook to modify the request before it is sent
 
     function Client(root::String;
             headers::Dict{String,String}=Dict{String,String}(),
             get_return_type::Function=(default,data)->default,
             long_polling_timeout::Int=DEFAULT_LONGPOLL_TIMEOUT_SECS,
-            timeout::Int=DEFAULT_TIMEOUT_SECS)
+            timeout::Int=DEFAULT_TIMEOUT_SECS,
+            pre_request_hook::Function=noop_pre_request_hook)
         clntoptions = Dict{Symbol,Any}(:throw=>false, :verbose=>false)
         downloader = Downloads.Downloader()
         downloader.easy_hook = (easy, opts) -> begin
             Downloads.Curl.setopt(easy, LibCURL.CURLOPT_LOW_SPEED_TIME, long_polling_timeout)
         end
-        new(root, headers, get_return_type, clntoptions, downloader, Ref{Int}(timeout))
+        new(root, headers, get_return_type, clntoptions, downloader, Ref{Int}(timeout), pre_request_hook)
     end
 end
 
@@ -129,11 +131,14 @@ struct Ctx
     body::Any
     timeout::Int
     curl_mime_upload::Any
+    pre_request_hook::Function
 
-    function Ctx(client::Client, method::String, return_type, resource::String, auth, body=nothing; timeout::Int=client.timeout[])
+    function Ctx(client::Client, method::String, return_type, resource::String, auth, body=nothing;
+            timeout::Int=client.timeout[],
+            pre_request_hook::Function=client.pre_request_hook)
         resource = client.root * resource
         headers = copy(client.headers)
-        new(client, method, return_type, resource, auth, Dict{String,String}(), Dict{String,String}(), headers, Dict{String,String}(), Dict{String,String}(), body, timeout, nothing)
+        new(client, method, return_type, resource, auth, Dict{String,String}(), Dict{String,String}(), headers, Dict{String,String}(), Dict{String,String}(), body, timeout, nothing, pre_request_hook)
     end
 end
 
@@ -279,7 +284,13 @@ function Base.iterate(iter::ChunkReader, _state=nothing)
     end
 end
 
+noop_pre_request_hook(ctx::Ctx) = ctx
+noop_pre_request_hook(resource_path::AbstractString, body::Any, headers::Dict{String,String}) = (resource_path, body, headers)
+
 function do_request(ctx::Ctx, stream::Bool=false; stream_to::Union{Channel,Nothing}=nothing)
+    # call the user hook to allow them to modify the request context
+    ctx = ctx.pre_request_hook(ctx)
+
     # prepare the url
     resource_path = replace(ctx.resource, "{format}"=>"json")
     for (k,v) in ctx.path
@@ -291,6 +302,11 @@ function do_request(ctx::Ctx, stream::Bool=false; stream_to::Union{Channel,Nothi
     end
 
     body, kwargs = prep_args(ctx)
+
+    # call the user hook again, to allow them to modify the processed request
+    resource_path, body, headers = ctx.pre_request_hook(resource_path, body, kwargs[:headers])
+    kwargs[:headers] = headers
+
     if body !== nothing
         input = PipeBuffer()
         write(input, body)
