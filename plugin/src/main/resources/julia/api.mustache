@@ -52,12 +52,14 @@ function _swaggerinternal_{{operationId}}(_api::{{classname}}{{#allParams}}{{#re
     return _ctx
 end
 
-"""
-{{{summary}}}
-{{{notes}}}
-{{#allParams}}
-Param: {{paramName}}::{{dataType}}{{#required}} (required){{/required}}
+@doc raw"""{{#summary.length}}{{{summary}}}
+
+{{/summary.length}}{{#notes.length}}{{{notes}}}
+
+{{/notes.length}}Params:
+{{#allParams}}- {{paramName}}::{{dataType}}{{#required}} (required){{/required}}
 {{/allParams}}
+
 Return: {{#returnType}}{{returnType}}{{/returnType}}{{^returnType}}Nothing{{/returnType}}
 """
 function {{operationId}}(_api::{{classname}}{{#allParams}}{{#required}}, {{paramName}}{{^isBodyParam}}::{{dataType}}{{/isBodyParam}}{{/required}}{{/allParams}};{{#allParams}}{{^required}} {{paramName}}=nothing,{{/required}}{{/allParams}} _mediaType=nothing)
