@@ -75,6 +75,7 @@ Client(root::String;
     get_return_type::Function=(default,data)->default,
     timeout::Int=DEFAULT_TIMEOUT_SECS,
     long_polling_timeout::Int=DEFAULT_LONGPOLL_TIMEOUT_SECS,
+    pre_request_hook::Function,
 )
 ```
 
@@ -85,6 +86,11 @@ Where:
 - `get_return_type`: optional method that can map a Julia type to a return type other than what is specified in the API specification by looking at the data (this is used only in special cases, for example when models are allowed to be dynamically loaded)
 - `timeout`: optional timeout to apply for server methods (default `Swagger.DEFAULT_TIMEOUT_SECS`)
 - `long_polling_timeout`: optional timeout to apply for long polling methods (default `Swagger.DEFAULT_LONGPOLL_TIMEOUT_SECS`)
+- `pre_request_hook`: user provided hook to modify the request before it is sent
+
+The `pre_request_hook` must provide the following two implementations:
+- `pre_request_hook(ctx::Swagger.Ctx) -> ctx`
+- `pre_request_hook(resource_path::AbstractString, body::Any, headers::Dict{String,String}) -> (resource_path, body, headers)`
 
 In case of any errors an instance of `ApiException` is thrown. It has the following fields:
 
@@ -94,8 +100,10 @@ In case of any errors an instance of `ApiException` is thrown. It has the follow
 - `error::Union{Nothing,Downloads.RequestError}`: The HTTP error on request failure
 
 An API call involves the following steps:
+- If a pre request hook is provided, it is invoked with an instance of `Swagger.Ctx` that has the request attributes. The hook method is expected to make any modifications it needs to the request attributes before the request is prepared, and return the modified context.
 - The URL to be invoked is prepared by replacing placeholders in the API URL template with the supplied function parameters.
 - If this is a POST request, serialize the instance of `SwaggerModel` provided as the `body` parameter as a JSON document.
+- If a pre request hook is provided, it is invoked with the prepared resource path, body and request headers. The hook method is expected to modify and return back a tuple of resource path, body and headers which will be used to make the request.
 - Make the HTTP call to the API endpoint and collect the response.
 - Determine the response type / model, invoke the optional user specified mapping function if one was provided.
 - Convert (deserialize) the response data into the return type and return.
