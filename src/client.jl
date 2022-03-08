@@ -479,3 +479,18 @@ convert(::Type{T}, v::Nothing) where {T<:SwaggerModel} = T()
 
 show(io::IO, model::T) where {T<:SwaggerModel} = print(io, JSON.json(model, 2))
 summary(model::T) where {T<:SwaggerModel} = print(io, T)
+
+"""
+    is_longpoll_timeout(ex::Exception)
+
+Examine the supplied exception and returns true if the reason is timeout
+of a long polling request. If the exception is a nested exception of type
+CompositeException or TaskFailedException, then navigates through the nested
+exception values to examine the leaves.
+"""
+is_longpoll_timeout(ex) = false
+is_longpoll_timeout(ex::TaskFailedException) = is_longpoll_timeout(ex.task.exception)
+is_longpoll_timeout(ex::CompositeException) = any(is_longpoll_timeout, ex.exceptions)
+function is_longpoll_timeout(ex::Swagger.ApiException)
+    ex.status == 200 && match(r"Operation timed out after \d+ milliseconds with \d+ bytes received", ex.reason) !== nothing
+end
