@@ -4,7 +4,7 @@ keywords = ["Swagger", "OpenApi", "REST"]
 license = "MIT"
 desc = "Swagger (OpenAPI) helper and code generator for Julia"
 authors = ["Tanmay Mohapatra <tanmaykm@gmail.com>"]
-version = "0.2.6"
+version = "0.2.7"
 
 [deps]
 Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
@@ -14,7 +14,7 @@ MbedTLS = "739be429-bea8-5141-9913-cc70e7f3736d"
 
 [compat]
 julia = "1"
-HTTP = "0.8, 0.9"
+HTTP = "0.8, 0.9, 1"
 JSON = "0.20, 0.21"
 MbedTLS = "0.6.8, 0.7, 1"
 
