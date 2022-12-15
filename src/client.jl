@@ -224,7 +224,7 @@ function prep_args(ctx::Ctx)
             body = to_json(ctx.body)
         elseif ("application/x-www-form-urlencoded" == ctx.header["Content-Type"]) && isa(ctx.body, Dict)
             body = URIs.escapeuri(ctx.body)
-        elseif isa(ctx.boody, SwaggerModel) && isempty(get(ctx.header, "Content-Type", ""))
+        elseif isa(ctx.body, SwaggerModel) && isempty(get(ctx.header, "Content-Type", ""))
             headers["Content-Type"] = "application/json"
             body = to_json(ctx.body)
         else
