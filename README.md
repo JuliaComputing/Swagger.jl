@@ -3,6 +3,8 @@
 [![Build Status](https://github.com/JuliaComputing/Swagger.jl/workflows/CI/badge.svg)](https://github.com/JuliaComputing/Swagger.jl/actions?query=workflow%3ACI+branch%3Amaster)
 [![codecov.io](http://codecov.io/github/JuliaComputing/Swagger.jl/coverage.svg?branch=master)](http://codecov.io/github/JuliaComputing/Swagger.jl?branch=master)
 
+NOTE: see [OpenAPI.jl](https://github.com/JuliaComputing/OpenAPI.jl) for newer tooling supporting v3.0 of the OpenAPI specification.
+
 This is a Julia plugin and code generator to generate your own client library with Swagger.
 
 The goal of Swagger™ is to define a standard, language-agnostic interface to REST APIs which allows both humans and computers to discover and understand the capabilities of the service without access to source code, documentation, or through network traffic inspection. When properly defined via Swagger, a consumer can understand and interact with the remote service with a minimal amount of implementation logic. Similar to what interfaces have done for lower-level programming, Swagger removes the guesswork in calling the service.
