@@ -3,7 +3,6 @@ module Swagger
 using Downloads
 using URIs
 using JSON
-using MbedTLS
 using Dates
 using LibCURL
 
